@@ -1,0 +1,2072 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta property="og:title" content="三国放置卡牌"><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三国放置 · 群雄逐鹿</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2314100b'/%3E%3Crect x='6' y='6' width='52' height='52' rx='9' fill='none' stroke='%23c9a24b' stroke-width='3'/%3E%3Ctext x='32' y='44' font-size='34' font-family='serif' font-weight='900' fill='%23e8c87a' text-anchor='middle'%3E%E4%B8%89%3C/text%3E%3C/svg%3E">
+<style>
+/* ============ 基础与色板 ============ */
+:root{
+  --ink:#14100b; --ink2:#1c1710; --panel:#241e15; --panel2:#2c241a; --panel3:#352c20;
+  --gold:#c9a24b; --gold2:#e8c87a; --gold3:#8a6d2f; --goldline:rgba(201,162,75,.45);
+  --paper:#efe3c8; --text:#efe3c8; --dim:#c4b392; --faint:#8a7a5f;
+  --red:#c0392b; --red2:#e05a3c;
+  --wei:#4a7fd4; --shu:#d4402f; --wu:#2f9e6e; --qun:#8f5fc7;
+  --r:#5b8def; --sr:#9b6df0; --ssr:#f0a63a; --ur:#e8453a;
+  --eq0:#cfcfcf; --eq1:#6fbf4a; --eq2:#4a90d9; --eq3:#9b6df0; --eq4:#f0a63a; --eq5:#ff4a5f;
+  --danger:#e05a3c; --ok:#58b368; --info:#4a90d9;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  background:#0d0a07;
+  color:var(--text);
+  font-family:'Noto Sans SC',system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;
+  font-size:14px; line-height:1.5;
+  overflow:hidden;
+}
+h1,h2,h3,.serif{font-family:'Noto Serif SC','Songti SC',STSong,'SimSun',serif}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:var(--gold3);border-radius:4px}
+::-webkit-scrollbar-track{background:rgba(0,0,0,.2)}
+#app{height:100%;display:flex;flex-direction:column;position:relative}
+#app::before{ /* 全局墨底纹理 */
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+  background:
+    radial-gradient(ellipse at 20% 10%, rgba(201,162,75,.05), transparent 50%),
+    radial-gradient(ellipse at 80% 90%, rgba(192,57,43,.04), transparent 50%),
+    repeating-linear-gradient(115deg, transparent 0 26px, rgba(255,255,255,.008) 26px 27px);
+}
+#app>*{position:relative;z-index:1}
+
+/* ============ 通用组件 ============ */
+.panel{
+  background:linear-gradient(180deg,var(--panel2),var(--panel));
+  border:1px solid var(--goldline);
+  border-radius:10px;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.35);
+  position:relative;
+}
+.panel::before{ /* 顶部金线 */
+  content:"";position:absolute;top:0;left:12px;right:12px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold2),transparent);opacity:.7;
+}
+.panel-title{
+  font-family:'Noto Serif SC',serif;font-weight:700;font-size:17px;color:var(--gold2);
+  letter-spacing:2px;padding:12px 16px 10px;display:flex;align-items:center;gap:8px;
+}
+.panel-title::before{content:"";width:4px;height:16px;background:linear-gradient(180deg,var(--gold2),var(--gold3));border-radius:2px}
+.sec-title{margin:14px 2px 8px;font-family:'Noto Serif SC',serif;font-size:15px;color:var(--gold);letter-spacing:1px;display:flex;align-items:center;gap:6px}
+.sec-title::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--goldline),transparent)}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:8px 18px;border-radius:8px;font-size:14px;font-weight:500;letter-spacing:1px;
+  transition:transform .08s,filter .15s,box-shadow .15s;user-select:none;
+}
+.btn:active{transform:scale(.96)}
+.btn-gold{background:linear-gradient(180deg,#e9cd85,#c9a24b 55%,#9a7a35);color:#221a08;font-weight:700;box-shadow:0 3px 10px rgba(201,162,75,.28), inset 0 1px 0 rgba(255,255,255,.5)}
+.btn-gold:hover{filter:brightness(1.08)}
+.btn-red{background:linear-gradient(180deg,#d95a41,#a93226);color:#fff6ea;font-weight:700;box-shadow:0 3px 10px rgba(192,57,43,.3), inset 0 1px 0 rgba(255,255,255,.25)}
+.btn-red:hover{filter:brightness(1.08)}
+.btn-ghost{background:rgba(201,162,75,.08);border:1px solid var(--goldline);color:var(--dim)}
+.btn-ghost:hover{border-color:var(--gold2);color:var(--gold2);background:rgba(201,162,75,.12)}
+.btn-dark{background:var(--panel3);border:1px solid rgba(255,255,255,.08);color:var(--dim)}
+.btn-dark:hover{color:var(--text)}
+.btn[disabled]{opacity:.45;cursor:not-allowed;filter:grayscale(.4)}
+.btn-sm{padding:4px 10px;font-size:12px;border-radius:6px}
+
+.chip{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:20px;font-size:11px;font-weight:500;letter-spacing:.5px;border:1px solid currentColor}
+.chip-out{background:rgba(212,64,47,.12);color:var(--shu)}
+.chip-tank{background:rgba(201,162,75,.12);color:var(--gold2)}
+.chip-supp{background:rgba(74,127,212,.12);color:var(--wei)}
+.chip-heal{background:rgba(88,179,104,.12);color:var(--ok)}
+.chip-ass{background:rgba(143,95,199,.12);color:var(--qun)}
+.sf-chip{padding:3px 12px;border-radius:16px;font-size:12px;border:1px solid rgba(255,255,255,.15);color:var(--dim);cursor:pointer;background:rgba(0,0,0,.2)}
+.sf-chip.on{background:linear-gradient(135deg,#c8a24a,#8c6a1f);color:#1a1206;border-color:transparent;font-weight:600}
+.mop-eq{padding:4px 8px;border-radius:14px;font-size:11px;border:1px solid rgba(255,255,255,.14);color:var(--dim);cursor:pointer;background:rgba(0,0,0,.2)}
+.mop-eq.has{border-color:rgba(201,162,75,.5);color:#d9bc74}
+.mop-eq.up{border-color:#e8c87a;color:#ffd98a;background:rgba(201,162,75,.14);font-weight:600}
+
+/* 阵营色 */
+.f-wei{color:var(--wei)} .f-shu{color:var(--shu)} .f-wu{color:var(--wu)} .f-qun{color:var(--qun)}
+.bg-wei{background:var(--wei)} .bg-shu{background:var(--shu)} .bg-wu{background:var(--wu)} .bg-qun{background:var(--qun)}
+.fac-wei{--fac:var(--wei)} .fac-shu{--fac:var(--shu)} .fac-wu{--fac:var(--wu)} .fac-qun{--fac:var(--qun)}
+.r-r{--rarc:var(--r)} .r-sr{--rarc:var(--sr)} .r-ssr{--rarc:var(--ssr)} .r-ur{--rarc:var(--ur)}
+
+/* ============ 顶栏 ============ */
+#topbar{
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:8px 16px;background:linear-gradient(180deg,var(--ink2),rgba(20,16,11,.92));
+  border-bottom:1px solid var(--goldline);
+}
+.brand{display:flex;align-items:center;gap:8px;font-family:'Noto Serif SC',serif;font-weight:900;font-size:18px;letter-spacing:3px;
+  background:linear-gradient(180deg,#f6e3ac,var(--gold2) 45%,#9a7a35);-webkit-background-clip:text;background-clip:text;color:transparent;white-space:nowrap}
+.brand .seal{width:26px;height:26px;flex:none}
+.res-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex:1;justify-content:flex-end}
+.res-item{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.07);border-radius:20px;font-size:12px;color:var(--dim);white-space:nowrap}
+.res-item b{color:var(--paper);font-weight:600}
+.res-item svg{flex:none}
+.res-gold b{color:#ffd98a}
+.res-power b{color:#ff8a5c}
+.tb-actions{display:flex;align-items:center;gap:8px;flex:none}
+.tb-btn{width:34px;height:34px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.08);color:var(--faint);transition:.15s;flex:none}
+.tb-btn:hover{color:var(--gold2);border-color:var(--goldline)}
+.tb-btn.on{color:var(--gold2);border-color:var(--goldline);background:rgba(201,162,75,.14)}
+.tb-btn.off{opacity:.55}
+.tb-btn.off svg{stroke:var(--red2)}
+
+/* ============ 底部导航 ============ */
+#nav{
+  display:flex;justify-content:space-around;align-items:stretch;
+  padding:4px 6px calc(6px + env(safe-area-inset-bottom,0));
+  background:linear-gradient(180deg,rgba(28,23,16,.96),#14100b);
+  border-top:1px solid var(--goldline);
+}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 0;color:var(--faint);font-size:11px;letter-spacing:1px;border-radius:8px;transition:.15s}
+.nav-item svg{width:22px;height:22px}
+.nav-item:hover{color:var(--dim)}
+.nav-item.active{color:var(--gold2)}
+.nav-item.active svg{filter:drop-shadow(0 0 6px rgba(201,162,75,.55))}
+.nav-item .n-badge{min-width:16px;height:16px;border-radius:8px;background:var(--red);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;padding:0 4px;margin-top:-1px}
+
+/* ============ 主视图 ============ */
+#view{flex:1;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth}
+.view-wrap{max-width:1120px;margin:0 auto;padding:14px 16px 26px}
+
+/* ============ 主页 ============ */
+#home-hero{
+  position:relative;border-radius:14px;overflow:hidden;min-height:300px;
+  border:1px solid var(--goldline);box-shadow:0 10px 30px rgba(0,0,0,.5);
+  display:flex;flex-direction:column;justify-content:flex-end;
+}
+#home-hero .bgimg{position:absolute;inset:0;width:100%;height:100%}
+.bg-main{background-image:url('assets/bg-main.jpg');background-size:cover;background-position:center 28%}
+.bg-battle{background-image:url('assets/bg-battle.jpg');background-size:cover;background-position:center 45%}
+#home-hero .veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,7,4,.28) 0%,rgba(10,7,4,.05) 45%,rgba(10,7,4,.9) 100%)}
+.home-hero-body{position:relative;padding:22px 22px 18px;z-index:1}
+.home-title{font-family:'Noto Serif SC',serif;font-weight:900;font-size:34px;letter-spacing:8px;line-height:1.2;
+  background:linear-gradient(180deg,#fbecc2,var(--gold2) 40%,#b1893a 75%,#8a6d2f);-webkit-background-clip:text;background-clip:text;color:transparent;
+  text-shadow:0 2px 18px rgba(0,0,0,.6);margin-bottom:6px}
+.home-sub{color:var(--dim);font-size:13px;letter-spacing:3px;margin-bottom:14px}
+.home-hero-cta{display:flex;gap:10px;flex-wrap:wrap}
+.home-quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:14px}
+.hq{padding:14px 16px;display:flex;align-items:center;gap:12px}
+.hq .hq-ic{width:44px;height:44px;flex:none;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Noto Serif SC',serif;font-weight:900;font-size:20px;color:#201807;background:linear-gradient(180deg,#e9cd85,#b3893c)}
+.hq .hq-tx{flex:1;min-width:0}
+.hq .hq-tx b{font-size:14px;color:var(--paper);display:block}
+.hq .hq-tx span{font-size:11.5px;color:var(--faint);display:block;margin-top:2px}
+.hq .hq-btn{flex:none}
+
+/* ============ 章节与关卡 ============ */
+.chap-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.chap-name{font-family:'Noto Serif SC',serif;font-size:20px;font-weight:900;color:var(--gold2);letter-spacing:2px;display:flex;align-items:center;gap:10px}
+.chap-name small{font-family:'Noto Sans SC',sans-serif;font-size:12px;color:var(--faint);font-weight:400;letter-spacing:0}
+.chap-tabs{display:flex;gap:6px;flex-wrap:wrap}
+.chap-tab{padding:4px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.1);color:var(--dim);font-size:12px;background:rgba(0,0,0,.3)}
+.chap-tab.cur{border-color:var(--gold);color:var(--gold2);background:rgba(201,162,75,.12)}
+.stage-map{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:10px}
+.stage-node{
+  position:relative;padding:10px 6px 8px;border-radius:10px;text-align:center;
+  border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,var(--panel3),var(--panel2));
+  transition:.15s;color:var(--dim);
+}
+.stage-node .sn-name{font-size:13px;font-weight:700;color:var(--paper);letter-spacing:1px}
+.stage-node .sn-st{font-size:11px;color:var(--faint);margin-top:2px}
+.stage-node.cleared{border-color:rgba(88,179,104,.5)}
+.stage-node.cleared .sn-st{color:var(--ok)}
+.stage-node.cur{border-color:var(--gold2);box-shadow:0 0 14px rgba(201,162,75,.35);animation:curPulse 2s infinite}
+.stage-node.cur .sn-name{color:#ffd98a}
+.stage-node.boss::after{content:"帅";position:absolute;top:-7px;right:-5px;width:18px;height:18px;border-radius:50%;background:linear-gradient(180deg,#d95a41,#a93226);color:#ffe9d6;font-size:10px;display:flex;align-items:center;justify-content:center;font-family:'Noto Serif SC',serif;font-weight:900;box-shadow:0 0 8px rgba(217,90,65,.6)}
+.stage-node.lock{opacity:.5}
+@keyframes curPulse{0%,100%{box-shadow:0 0 8px rgba(201,162,75,.3)}50%{box-shadow:0 0 18px rgba(201,162,75,.55)}}
+
+/* ============ 武将卡 ============ */
+.hero-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px}
+.hero-card{
+  position:relative;border-radius:10px;padding:8px 6px 8px;text-align:center;cursor:pointer;
+  background:linear-gradient(180deg,var(--panel2),var(--panel));
+  border:1px solid rgba(255,255,255,.09);
+  border-top:2px solid var(--fac,var(--gold3));
+  transition:transform .12s,box-shadow .12s;overflow:hidden;
+}
+.hero-card:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(0,0,0,.45)}
+.hero-card .h-water{position:absolute;right:-6px;bottom:-14px;font-family:'Noto Serif SC',serif;font-size:64px;font-weight:900;opacity:.06;color:var(--fac,#fff);line-height:1;pointer-events:none}
+.hero-card .h-rarity{position:absolute;top:5px;left:6px;width:9px;height:9px;border-radius:50%;background:var(--rarc,#5b8def);box-shadow:0 0 6px var(--rarc,#5b8def)}
+.hero-card .h-fac{position:absolute;top:4px;right:6px;font-size:11px;font-weight:700;color:var(--fac,#fff);opacity:.9;letter-spacing:0}
+.h-med{position:relative;width:62px;height:62px;margin:2px auto 5px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-family:'Noto Serif SC',serif;font-weight:900;font-size:30px;color:#fdf3da;
+  background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.22), rgba(0,0,0,.28) 70%), linear-gradient(160deg, color-mix(in srgb,var(--fac,#c9a24b) 78%, #000), color-mix(in srgb,var(--fac,#c9a24b) 30%, #000));
+  border:2px solid var(--rarc,#5b8def);box-shadow:0 0 0 2px rgba(0,0,0,.4), 0 2px 8px rgba(0,0,0,.5), inset 0 0 10px rgba(0,0,0,.3)}
+.h-med::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:1px dashed rgba(255,255,255,.25)}
+.h-name{font-size:13px;font-weight:700;color:var(--paper);letter-spacing:1px}
+.h-meta{font-size:10.5px;color:var(--faint);margin-top:2px;display:flex;justify-content:center;gap:4px;flex-wrap:wrap}
+.h-stars{color:var(--gold2);font-size:9px;letter-spacing:1px;margin-top:2px}
+.h-power{font-size:10.5px;color:#ff9a6a;margin-top:2px}
+.h-flag{position:absolute;top:0;left:0;width:100%;height:3px;background:var(--fac,#c9a24b);opacity:.85}
+
+/* 2.5D 武将立绘（上场形象，无边框） */
+.portrait{background-size:300% 200%;background-repeat:no-repeat;border-radius:10px;background-color:#0d0a06;box-shadow:0 5px 14px rgba(0,0,0,.5)}
+.portrait.s0{background-image:url('assets/heroes-starter.jpg')}
+.portrait.s1{background-image:url('assets/heroes-1.jpg')}
+.portrait.s2{background-image:url('assets/heroes-2.jpg')}
+.portrait.s3{background-image:url('assets/heroes-3.jpg')}
+.portrait.s4{background-image:url('assets/heroes-4.jpg')}
+.portrait.s5{background-image:url('assets/heroes-5.jpg')}
+.portrait.s6{background-image:url('assets/heroes-6.jpg')}
+.portrait.s7{background-image:url('assets/heroes-7.jpg')}
+.portrait.p0{background-position:0% 0%}
+.portrait.p1{background-position:50% 0%}
+.portrait.p2{background-position:100% 0%}
+.portrait.p3{background-position:0% 100%}
+.portrait.p4{background-position:50% 100%}
+.portrait.p5{background-position:100% 100%}
+.bu-portrait{width:64px;height:96px;margin:0 auto;border-radius:8px}
+.form-portrait{width:88px;height:132px;border-radius:12px;margin:2px auto 4px}
+.m-portrait{width:72px;height:108px;border-radius:10px;flex:none}
+.r-portrait{width:64px;height:96px;border-radius:8px;margin:2px auto 4px}
+.portrait.gs{filter:grayscale(1) brightness(.72);opacity:.9}
+.c-portrait{width:100%;aspect-ratio:2/3;height:auto;margin:0 auto 5px;border-radius:12px}
+.art-big{width:min(66vw,430px);aspect-ratio:2/3;height:auto;margin:0 auto;border-radius:14px;box-shadow:0 10px 36px rgba(0,0,0,.65)}
+
+/* 阵容槽 */
+.form-slot{position:relative;border-radius:12px;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;
+  border:1.5px dashed rgba(201,162,75,.35);background:rgba(0,0,0,.22);transition:.15s}
+.form-slot:hover{border-color:var(--gold2);background:rgba(201,162,75,.05)}
+.form-slot .fs-empty{color:var(--faint);font-size:12px;letter-spacing:1px}
+.form-slot.has{border-style:solid;border-color:rgba(255,255,255,.1);background:linear-gradient(180deg,var(--panel2),var(--panel))}
+.form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.bond-list{display:flex;flex-direction:column;gap:8px}
+.bond-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.25)}
+.bond-item.on{border-color:var(--goldline);background:linear-gradient(90deg,rgba(201,162,75,.14),rgba(201,162,75,.04))}
+.bond-item .b-stat{flex:none;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;font-family:'Noto Serif SC',serif}
+.bond-item.on .b-stat{background:linear-gradient(180deg,#e9cd85,#b3893c);color:#221a08}
+.bond-item.off .b-stat{background:rgba(255,255,255,.06);color:var(--faint)}
+.bond-item .b-name{font-weight:700;color:var(--paper);font-size:13px}
+.bond-item .b-desc{font-size:11.5px;color:var(--faint);margin-top:1px}
+.bond-item .b-heroes{font-size:10.5px;color:var(--dim);margin-top:1px;letter-spacing:.5px}
+.bond-item.on .b-desc{color:#c9b57f}
+
+/* ============ 招募 ============ */
+.recruit-stage{position:relative;border-radius:14px;overflow:hidden;min-height:230px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:1px solid var(--goldline);margin-bottom:14px}
+.recruit-stage .bgimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 40%}
+.recruit-stage .veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,7,4,.4),rgba(10,7,4,.75))}
+.recruit-stage>*{position:relative;z-index:1}
+.recruit-stage h2{font-family:'Noto Serif SC',serif;font-size:26px;letter-spacing:6px;color:var(--gold2);text-shadow:0 2px 10px rgba(0,0,0,.7)}
+.recruit-stage p{color:var(--dim);font-size:12.5px;letter-spacing:1px}
+.recruit-odds{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 14px}
+.odd-box{text-align:center;padding:10px 6px;border-radius:8px;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.3)}
+.odd-box .o-r{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
+.odd-box b{display:block;font-size:16px;font-family:'Noto Serif SC',serif;color:var(--paper);margin-top:2px}
+.odd-box span{font-size:11px;color:var(--faint)}
+.recruit-pity{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.pity-item{font-size:12px;color:var(--dim)}
+.pity-item b{color:var(--gold2);font-family:'Noto Serif SC',serif;font-size:15px;margin:0 3px}
+
+/* 招募结果 */
+.result-cards{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding:10px 0}
+.result-card{width:96px;text-align:center;perspective:600px;animation:rcIn .5s both}
+.result-card .rc-inner{position:relative;width:100%;height:132px;transform-style:preserve-3d;transition:transform .6s}
+.result-card.flip .rc-inner{transform:rotateY(180deg)}
+.result-card .rc-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:1px solid var(--rarc,#5b8def);background:linear-gradient(180deg,var(--panel2),var(--panel))}
+.result-card .rc-back{transform:none;background:repeating-linear-gradient(45deg, rgba(201,162,75,.08) 0 8px, rgba(0,0,0,.2) 8px 16px)}
+.result-card .rc-hero{transform:rotateY(180deg)}
+.result-card.flip .rc-hero{animation:rcFlash .6s ease-out}
+@keyframes rcFlash{0%{filter:brightness(1.7)}100%{filter:brightness(1)}}
+.result-card.best.flip::after{content:"";position:absolute;inset:-6px;border-radius:12px;background:radial-gradient(circle,rgba(255,214,120,.38),transparent 70%);animation:rcBurst .8s ease-out both;pointer-events:none}
+@keyframes rcBurst{0%{opacity:0;transform:scale(.6)}30%{opacity:1}100%{opacity:0;transform:scale(1.25)}}
+.result-card .rc-face .h-med{width:52px;height:52px;font-size:26px}
+.result-card .rc-name{font-size:13px;font-weight:700;color:var(--paper)}
+.craft-row{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(0,0,0,.22);margin-bottom:7px}
+.craft-dot{width:13px;height:13px;border-radius:4px;flex:none;box-shadow:0 0 6px rgba(255,255,255,.15)}
+.craft-name{flex:1;font-size:13px;font-weight:700}
+.craft-n{font-size:11.5px;color:var(--faint);flex:none}
+.craft-btn{flex:none}
+.eq-ico{display:inline-block;background:url(assets/equips.jpg) no-repeat;background-size:300% 200%;flex:none}
+.eq-ico-lg{width:54px;height:54px}
+.ico-weapon{background-position:0% 0%}
+.ico-armor{background-position:50% 0%}
+.ico-helm{background-position:100% 0%}
+.ico-boots{background-position:0% 100%}
+.ico-mount{background-position:50% 100%}
+.eq-slot .es-icobox,.eq-item-card .ei-icobox{height:58px;display:flex;align-items:center;justify-content:center;border-radius:6px;background:rgba(0,0,0,.38);border:1px solid rgba(255,255,255,.07);margin-bottom:6px;overflow:hidden}
+.eq-slot .es-icobox.has,.eq-item-card .ei-icobox{box-shadow:inset 0 0 12px color-mix(in srgb,var(--eqc,#cfcfcf) 28%,transparent),0 0 10px color-mix(in srgb,var(--eqc,#cfcfcf) 40%,transparent)}
+.eq-ico-empty{width:30px;height:30px;border-radius:50%;border:1px dashed rgba(255,255,255,.22);opacity:.55}
+.form-slot .fs-stats{display:flex;flex-wrap:wrap;justify-content:center;gap:0 6px;font-size:8.5px;color:var(--dim);margin-top:3px;line-height:1.4}
+.form-slot .fs-stats .fs-pow{color:#ff9a6a;font-weight:700}
+.rc-top{margin-top:6px;font-size:13px;color:var(--faint)}
+.rc-top b{font-size:17px;font-family:'Noto Serif SC',serif;color:var(--gold2);letter-spacing:1px}
+.rc-top .rc-top-r{display:inline-block;margin-left:6px;font-size:11px;font-weight:700;color:#221a08;border-radius:4px;padding:1px 7px;vertical-align:2px}
+.result-card.best .rc-face{border-color:var(--goldline);box-shadow:0 0 16px rgba(201,162,75,.35)}
+.result-card.best .rc-name{color:var(--gold2)}
+@keyframes rcIn{from{opacity:0;transform:translateY(16px) scale(.8)}to{opacity:1;transform:none}}
+
+/* ============ 战斗 ============ */
+#battle-view{position:relative;min-height:calc(100vh - 210px);border-radius:14px;overflow:hidden;border:1px solid var(--goldline);display:flex;flex-direction:column}
+#battle-view .bgimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#battle-view .veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,5,3,.5),rgba(8,5,3,.35) 40%,rgba(8,5,3,.88))}
+.battle-top{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;flex-wrap:wrap}
+.battle-enemy,.battle-player{position:relative;z-index:1;display:flex;justify-content:center;gap:6px;padding:6px 10px}
+.battle-player{order:3;padding-bottom:14px}
+.bunit{width:78px;flex:none;position:relative;text-align:center;transition:transform .15s}
+.bunit .bu-med{width:56px;height:56px;margin:0 auto;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Noto Serif SC',serif;font-weight:900;font-size:26px;color:#fdf3da;border:2px solid transparent;position:relative;background:radial-gradient(circle at 32% 28%,rgba(255,255,255,.22),rgba(0,0,0,.3) 75%)}
+.bunit .bu-hp{height:10px;border-radius:5px;background:rgba(0,0,0,.72);border:1px solid rgba(255,255,255,.28);margin:5px 4px 0;overflow:hidden;position:relative}
+.bunit .bu-hp i{display:block;height:100%;background:linear-gradient(90deg,#42b96a,#8fe09a);transition:width .25s}
+.bunit .bu-hp .hp-tx{position:absolute;inset:0;font-size:8.5px;font-weight:700;line-height:10px;text-align:center;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.95);z-index:2;pointer-events:none}
+.bunit .bu-en{height:6px;border-radius:3px;background:rgba(0,0,0,.72);border:1px solid rgba(140,180,255,.3);margin:3px 4px 0;overflow:hidden;position:relative}
+.bunit .bu-en i{display:block;height:100%;background:linear-gradient(90deg,#2f6fd8,#58b0ff);transition:width .25s}
+.bunit .bu-en .en-tx{position:absolute;inset:0;font-size:7.5px;font-weight:700;line-height:6px;text-align:center;color:#cfe2ff;text-shadow:0 1px 2px rgba(0,0,0,.95);z-index:2;pointer-events:none;letter-spacing:1px}
+.bunit .bu-en.ready{border-color:rgba(255,205,90,.75);box-shadow:0 0 8px rgba(255,190,60,.35)}
+.bunit .bu-en.ready i{background:linear-gradient(90deg,#e0a83c,#ffd98a)}
+.bunit .bu-en.ready .en-tx{color:#ffdf9a;animation:enPulse .5s ease-in-out infinite}
+@keyframes enPulse{0%,100%{opacity:1}50%{opacity:.55}}
+.bunit .bu-name{font-size:10.5px;color:var(--paper);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+.bunit.att{transform:translateY(-6px)}
+.bunit.hit .bu-med{animation:hitShake .35s}
+.bunit.dead{opacity:.25;filter:grayscale(.9)}
+.bunit .bu-lv{font-size:9px;color:var(--faint)}
+@keyframes hitShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}50%{transform:translateX(3px)}75%{transform:translateX(-2px)}}
+.dmg-float{position:absolute;left:50%;top:-4px;transform:translateX(-50%);font-family:'Noto Serif SC',serif;font-weight:900;font-size:15px;color:#ffd98a;text-shadow:0 1px 4px rgba(0,0,0,.9);animation:dmgUp 1s both;pointer-events:none;white-space:nowrap;z-index:5}
+.dmg-float.crit{color:#ff5a4a;font-size:19px}
+.dmg-float.heal{color:#7fe89a}
+.dmg-float.dim{color:#c9b57f;font-size:11px}
+@keyframes dmgUp{0%{opacity:0;transform:translate(-50%,6px)}15%{opacity:1}100%{opacity:0;transform:translate(-50%,-34px)}}
+/* ============ 技能特效 ============ */
+.dmg-float.dmg{font-size:16px;color:#ffd98a}
+.bunit.cast{animation:castLift .6s ease-out}
+.bunit.cast::after{content:"";position:absolute;left:50%;top:30px;width:64px;height:64px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(circle,rgba(255,214,120,.8),rgba(255,180,80,.2) 55%,transparent 72%);animation:castBurst .65s ease-out both;pointer-events:none;z-index:4}
+@keyframes castLift{0%{transform:translateY(0)}30%{transform:translateY(-9px)}100%{transform:translateY(0)}}
+@keyframes castBurst{0%{opacity:0;transform:translate(-50%,0) scale(.3)}30%{opacity:1}100%{opacity:0;transform:translate(-50%,0) scale(1.6)}}
+.bunit.hit .bu-portrait{animation:hitShake .35s;filter:brightness(1.6)}
+.bunit.healfx .bu-portrait{animation:healGlow .7s ease-out}
+.bunit.healfx::before{content:"";position:absolute;left:50%;top:0;width:10px;height:10px;transform:translateX(-50%);border-radius:50%;background:#7fe89a;box-shadow:0 0 8px #7fe89a;animation:healRise .7s ease-out both;pointer-events:none;z-index:4}
+@keyframes healGlow{0%{filter:brightness(1) drop-shadow(0 0 0 rgba(127,232,154,0))}30%{filter:brightness(1.4) drop-shadow(0 0 10px rgba(127,232,154,.95))}100%{filter:brightness(1) drop-shadow(0 0 0 rgba(127,232,154,0))}}
+@keyframes healRise{0%{opacity:0;transform:translate(-50%,16px) scale(.5)}30%{opacity:1}100%{opacity:0;transform:translate(-50%,-30px) scale(1.25)}}
+.bunit.bufffx .bu-portrait{animation:buffRing .7s ease-out}
+.bunit.bufffx::before{content:"";position:absolute;left:50%;top:30px;width:66px;height:66px;transform:translateX(-50%);border-radius:50%;border:2px solid rgba(120,170,255,.95);box-shadow:0 0 12px rgba(120,170,255,.85),inset 0 0 8px rgba(120,170,255,.5);animation:buffExpand .7s ease-out both;pointer-events:none;z-index:4}
+@keyframes buffRing{0%{filter:brightness(1)}40%{filter:brightness(1.45)}100%{filter:brightness(1)}}
+@keyframes buffExpand{0%{opacity:0;transform:translateX(-50%) scale(.4)}35%{opacity:1}100%{opacity:0;transform:translateX(-50%) scale(1.5)}}
+.fx-aoe{position:absolute;z-index:2;left:0;right:0;height:30%;pointer-events:none}
+.fx-aoe-e{top:0}
+.fx-aoe-p{bottom:0}
+.fx-aoe::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(255,220,120,.55),rgba(255,120,60,.18) 55%,transparent 78%);animation:aoePulse .7s ease-out both}
+.fx-aoe::after{content:"";position:absolute;top:50%;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#fff,transparent);box-shadow:0 0 18px 5px rgba(255,200,90,.95);animation:aoeSweep .7s ease-out both}
+@keyframes aoePulse{0%{opacity:0;transform:scale(.6)}25%{opacity:1}100%{opacity:0;transform:scale(1.15)}}
+@keyframes aoeSweep{0%{transform:translateY(-32px);opacity:0}15%{opacity:1}100%{transform:translateY(32px);opacity:0}}
+.skill-banner{position:absolute;z-index:3;left:50%;top:38%;transform:translate(-50%,-50%) scale(.6);opacity:0;pointer-events:none;
+  font-family:'Noto Serif SC',serif;font-weight:900;font-size:26px;letter-spacing:4px;color:#ffd98a;text-shadow:0 0 18px rgba(255,217,138,.8),0 2px 6px rgba(0,0,0,.9);white-space:nowrap;animation:sbShow 1.2s both}
+.skill-banner.enemy{color:#ff8a7a}
+@keyframes sbShow{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}18%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}70%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.1)}}
+/* ============ 技能 cut-in 特写（画面中间人物本体，无边框） ============ */
+.ult-cut{position:absolute;inset:0;z-index:5;opacity:0;pointer-events:none;overflow:hidden}
+.ult-cut.show{opacity:1;animation:ucLife 1.4s ease-out both}
+.ult-cut .uc-art{position:absolute;left:52%;top:58%;height:56%;width:auto;transform:translate(-50%,-50%);
+  filter:drop-shadow(0 10px 22px rgba(0,0,0,.6)) drop-shadow(0 0 26px rgba(255,120,50,.32));
+  animation:ucPop .4s cubic-bezier(.16,.84,.32,1) both}
+.ult-cut .uc-name{position:absolute;left:50%;top:20%;transform:translateX(-50%);font-family:'Noto Serif SC',serif;font-weight:900;font-size:28px;letter-spacing:4px;
+  color:#ffe0a3;text-shadow:0 0 22px rgba(255,140,50,.85),0 0 8px rgba(255,217,138,.6),0 3px 8px rgba(0,0,0,.95);white-space:nowrap;
+  animation:ucName .42s .08s ease-out both}
+.ult-cut .uc-hero{position:absolute;left:50%;top:calc(20% + 40px);transform:translateX(-50%);font-size:12px;letter-spacing:3px;color:#f4c96b;
+  text-shadow:0 2px 6px rgba(0,0,0,.9);opacity:0;animation:ucName .42s .16s ease-out both}
+.ult-cut .uc-flash{position:absolute;inset:0;background:radial-gradient(ellipse 42% 36% at 52% 54%,rgba(255,200,120,.38),rgba(255,120,50,.1) 55%,transparent 72%);
+  animation:ucFlash .45s ease-out both}
+@keyframes ucLife{0%{opacity:1}74%{opacity:1}100%{opacity:0}}
+@keyframes ucFlash{0%{opacity:.9}100%{opacity:0}}
+@keyframes ucPop{0%{opacity:0;transform:translate(-50%,-50%) scale(1.26)}55%{opacity:1}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes ucName{0%{opacity:0;transform:translateX(-50%) translateY(-12px)}60%{opacity:1}100%{opacity:1;transform:translateX(-50%) translateY(0)}}
+.battle-mid{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px}
+.battle-vs{font-family:'Noto Serif SC',serif;font-size:22px;letter-spacing:6px;color:rgba(232,200,122,.85);text-shadow:0 0 16px rgba(201,162,75,.6)}
+.battle-round{font-size:12px;color:var(--dim);letter-spacing:2px}
+.battle-ctl{position:relative;z-index:1;display:flex;justify-content:center;gap:8px;padding:0 12px 12px;flex-wrap:wrap}
+.battle-log{position:relative;z-index:1;margin:0 12px 12px;max-height:130px;overflow-y:auto;font-size:11.5px;color:var(--dim);line-height:1.7;border-top:1px dashed rgba(201,162,75,.3);padding:6px 2px}
+.battle-log b{color:var(--gold2);font-weight:600}
+.battle-result{position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(8,5,3,.82);backdrop-filter:blur(2px)}
+.battle-result .br-title{font-family:'Noto Serif SC',serif;font-weight:900;font-size:40px;letter-spacing:10px}
+.battle-result.win .br-title{color:#ffd98a;text-shadow:0 0 30px rgba(255,217,138,.7)}
+.battle-result.lose .br-title{color:#ff7a6a;text-shadow:0 0 30px rgba(255,122,106,.5)}
+.br-rewards{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.br-reward{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);font-size:13px}
+.br-reward b{color:#ffd98a}
+.br-stats{display:flex;flex-direction:column;gap:6px;padding:10px 14px;border-radius:10px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.12);min-width:240px}
+.br-s-title{font-size:12px;color:var(--gold2);letter-spacing:3px;text-align:center;margin-bottom:2px}
+.br-s-row{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text)}
+.br-s-row b{color:#ffd98a}
+
+/* ============ 详情弹窗 ============ */
+#modal-root{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:14px}
+#modal-root.open{display:flex}
+#modal-root .m-veil{position:absolute;inset:0;background:rgba(6,4,2,.7);backdrop-filter:blur(2px)}
+.modal{position:relative;width:min(640px,100%);max-height:86vh;overflow-y:auto;border-radius:14px;animation:modalIn .22s;background:linear-gradient(180deg,#2a231a,var(--panel));border:1px solid var(--goldline);box-shadow:0 20px 60px rgba(0,0,0,.6)}
+@keyframes modalIn{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+.m-close{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:18px;z-index:5;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1)}
+.m-close:hover{color:var(--gold2);border-color:var(--goldline)}
+.m-head{display:flex;gap:16px;padding:20px 20px 14px;align-items:center;border-bottom:1px solid rgba(255,255,255,.07)}
+.m-head .h-med{width:84px;height:84px;font-size:40px;flex:none}
+.m-head .m-name{font-size:22px;font-weight:900;font-family:'Noto Serif SC',serif;letter-spacing:2px;color:var(--paper)}
+.m-head .m-role{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap}
+.m-body{padding:14px 20px 20px}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.stat-box{text-align:center;padding:8px 4px;border-radius:8px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.07)}
+.stat-box span{font-size:10.5px;color:var(--faint);display:block}
+.stat-box b{font-size:15px;font-family:'Noto Serif SC',serif;color:var(--paper)}
+.skill-box{margin-top:12px;padding:11px 13px;border-radius:8px;border:1px solid rgba(201,162,75,.3);background:rgba(201,162,75,.06)}
+.skill-box .sk-name{font-weight:700;color:var(--gold2);font-family:'Noto Serif SC',serif;letter-spacing:1px}
+.skill-box .sk-desc{font-size:12.5px;color:var(--dim);margin-top:3px}
+.skill-box.sk-lock{border-color:rgba(255,255,255,.12);background:rgba(255,255,255,.03)}
+.skill-box.sk-lock .sk-name{color:var(--faint)}
+.skill-box.sk-ult{border-color:rgba(232,200,122,.55);background:linear-gradient(180deg,rgba(232,200,122,.13),rgba(201,162,75,.05));box-shadow:0 0 12px rgba(201,162,75,.14)}
+.skill-box.sk-ult .sk-name{color:#ffd98a}
+.skill-box.sk-ult .sk-desc{color:var(--paper)}
+.sk-lock-tip{display:inline-block;margin-left:6px;font-size:11px;color:var(--faint);font-family:'Noto Sans SC',sans-serif;font-weight:400;letter-spacing:.5px}
+.eq-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px}
+.eq-slot{position:relative;padding:10px;border-radius:8px;border:1px dashed rgba(255,255,255,.15);background:rgba(0,0,0,.25);cursor:pointer;transition:.15s}
+.eq-slot:hover{border-color:var(--goldline);background:rgba(201,162,75,.05)}
+.eq-slot .es-name{font-size:10.5px;color:var(--faint)}
+.eq-slot .es-item{font-size:12.5px;font-weight:700;color:var(--paper);margin-top:2px}
+.eq-slot .es-item b{font-weight:700}
+.eq-slot .es-lv{font-size:10px;color:var(--dim);margin-top:2px}
+.act-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+
+/* ============ 装备 ============ */
+.eq-item-card{padding:8px 10px;border-radius:8px;border:1px solid color-mix(in srgb,var(--eqc,#cfcfcf) 45%, transparent);background:rgba(0,0,0,.3);display:flex;flex-direction:column;gap:3px;cursor:pointer;transition:.15s}
+.eq-item-card:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(0,0,0,.4)}
+.eq-item-card .ei-n{font-size:12.5px;font-weight:700;color:var(--paper)}
+.eq-item-card .ei-st{font-size:11px;color:var(--dim)}
+.eq-item-card .ei-lv{font-size:10.5px;color:var(--faint)}
+
+/* ============ 图鉴 ============ */
+.codex-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.fbtn{padding:4px 14px;border-radius:20px;font-size:12.5px;border:1px solid rgba(255,255,255,.12);color:var(--dim);background:rgba(0,0,0,.3);transition:.15s}
+.fbtn.on{border-color:var(--gold);color:var(--gold2);background:rgba(201,162,75,.14)}
+.hero-card.owned{border-color:rgba(255,255,255,.16)}
+.hero-card .h-not{opacity:.9;filter:grayscale(.4)}
+.hero-card .h-not .h-med{background:#1d1a16;border-color:#4a443a;color:#6d6658}
+
+/* ============ 设置 ============ */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 4px;border-bottom:1px dashed rgba(255,255,255,.09)}
+.set-row:last-child{border-bottom:none}
+.set-row .sr-tx b{display:block;color:var(--paper);font-size:14px}
+.set-row .sr-tx span{font-size:11.5px;color:var(--faint)}
+.switch{position:relative;width:46px;height:24px;border-radius:14px;background:rgba(255,255,255,.12);transition:.2s;flex:none}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#c9b57f;transition:.2s}
+.switch.on{background:linear-gradient(90deg,#b3893c,#e8c87a)}
+.switch.on::after{left:25px;background:#fff8e6}
+
+/* ============ 提示与通用 ============ */
+#toast-root{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:80;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{padding:9px 20px;border-radius:8px;background:rgba(20,16,11,.94);border:1px solid var(--goldline);color:var(--paper);font-size:13px;letter-spacing:1px;box-shadow:0 8px 24px rgba(0,0,0,.5);animation:toastIn .25s both;max-width:88vw}
+.toast.err{border-color:rgba(224,90,60,.5);color:#ffb4a0}
+.toast.ok{border-color:rgba(88,179,104,.5);color:#a9e6b5}
+@keyframes toastIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+.empty-tip{text-align:center;color:var(--faint);padding:34px 10px;font-size:13px;letter-spacing:1px}
+.power-tag{font-size:12px;color:#ff9a6a}
+.danger{color:var(--danger)} .ok{color:var(--ok)}
+
+/* 新手引导 */
+.guide-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.guide-step{display:flex;gap:10px;align-items:flex-start;padding:9px 12px;border-radius:8px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.07)}
+.guide-step .gs-n{flex:none;width:22px;height:22px;border-radius:50%;background:linear-gradient(180deg,#e9cd85,#b3893c);color:#221a08;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:'Noto Serif SC',serif}
+.guide-step p{font-size:12.5px;color:var(--dim);line-height:1.6}
+
+/* 波动:离线收益 */
+.offline-box{position:relative;padding:16px;border-radius:12px;margin-top:14px;background:linear-gradient(180deg,rgba(232,200,122,.1),rgba(201,162,75,.04));border:1px solid var(--goldline);display:flex;align-items:center;gap:14px;flex-wrap:wrap;animation:curPulse 2.2s infinite}
+.offline-box .ob-tx{flex:1;min-width:200px}
+.offline-box .ob-tx b{font-family:'Noto Serif SC',serif;font-size:16px;color:var(--gold2);letter-spacing:1px}
+.offline-box .ob-tx span{display:block;font-size:12px;color:var(--dim);margin-top:3px}
+
+@media (max-width:560px){
+  .home-title{font-size:27px;letter-spacing:5px}
+  .stat-grid{grid-template-columns:repeat(2,1fr)}
+  .form-grid{grid-template-columns:repeat(3,1fr)}
+  .bunit{width:15vw;min-width:44px}
+  .bunit .bu-med{width:46px;height:46px;font-size:22px}
+  .skill-banner{font-size:20px}
+  .hero-grid{grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}
+  .res-item{padding:2px 8px;font-size:11px}
+  .brand{font-size:15px}
+  .recruit-odds{grid-template-columns:repeat(2,1fr)}
+  /* ===== 手机紧凑：顶栏 / 推图页 ===== */
+  #topbar{padding:5px 8px;gap:8px}
+  .brand{font-size:14px;letter-spacing:1px}
+  .brand .seal{width:20px;height:20px}
+  .res-item{padding:2px 6px;font-size:10px;gap:3px}
+  .res-item svg{width:11px;height:11px}
+  .tb-btn{width:29px;height:29px}
+  .tb-btn svg{width:16px;height:16px}
+  .view-wrap{padding:10px 10px 16px}
+  .chap-head{margin-bottom:6px}
+  .chap-name{font-size:15px;letter-spacing:1px}
+  .chap-tab{padding:3px 9px;font-size:11px}
+  .stage-map{grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px}
+  .stage-node{padding:7px 3px 6px;border-radius:8px}
+  .stage-node .sn-name{font-size:11.5px}
+  .stage-node .sn-st{font-size:10px}
+  .sec-title{margin:10px 2px 6px;font-size:13px}
+  .panel .btn-sm{padding:3px 8px;font-size:11px;letter-spacing:0}
+  .power-tag{font-size:11px}
+  .empty-tip{padding:20px 8px;font-size:12px}
+  /* ===== 手机战斗：去掉上半部分无用显示，战斗画面最大化 ===== */
+  body.in-battle .chap-head,
+  body.in-battle .stage-map,
+  body.in-battle .sec-title,
+  body.in-battle .panel{display:none !important}
+  #battle-view{min-height:calc(100vh - 130px);border-radius:10px}
+  .battle-top{display:none}
+  .battle-mid{display:none}
+  .battle-enemy{padding-top:10px}
+  .battle-enemy,.battle-player{gap:3px;padding-left:4px;padding-right:4px}
+  .battle-player{margin-top:auto;padding-bottom:12px}
+  .battle-ctl{order:2;justify-content:flex-end;padding:0 8px 4px;gap:6px}
+  .battle-log{order:3;max-height:80px;margin:0 8px 6px;font-size:10.5px;padding:5px 2px}
+  .battle-ctl .btn-sm{padding:3px 10px;font-size:11px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="topbar"></header>
+  <main id="view"></main>
+  <nav id="nav"></nav>
+</div>
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+<script>
+"use strict";
+/* ============ 工具 ============ */
+const $ = (s,el)=> (el||document).querySelector(s);
+const $$ = (s,el)=> Array.from((el||document).querySelectorAll(s));
+const fmt = n => { if(n==null) return "0"; n=Math.floor(n); if(n>=1e8) return (n/1e8).toFixed(2)+"亿"; if(n>=1e4) return (n/1e4).toFixed(1)+"万"; return ""+n; };
+const fmtT = ms => { const s=Math.max(0,Math.floor(ms/1000)); const h=Math.floor(s/3600), m=Math.floor(s%3600/60), sec=s%60; return (h>0? h+"时":"")+(h>0||m>0? m+"分":"")+sec+"秒"; };
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const uid=()=> Math.random().toString(36).slice(2,10);
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function toast(msg,type){ const t=document.createElement("div"); t.className="toast "+(type||""); t.textContent=msg; $("#toast-root").appendChild(t); setTimeout(()=>{t.style.opacity="0";t.style.transition="opacity .3s";setTimeout(()=>t.remove(),350)},2600); }
+function sfx(name){ if(!S.sound) return; try{ const c=SFX[name]; if(!c) return; const o=AC.createOscillator(), g=AC.createGain(); o.type=c.type||"sine"; o.frequency.setValueAtTime(c.f0,AC.currentTime); if(c.f1) o.frequency.exponentialRampToValueAtTime(c.f1,AC.currentTime+c.dur); g.gain.setValueAtTime(c.v||.08,AC.currentTime); g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+c.dur); o.connect(g); g.connect(AC.dest); o.start(); o.stop(AC.currentTime+c.dur); }catch(e){} }
+let AC=null; function initAudio(){ if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(AC&&AC.state==="suspended") AC.resume(); }
+const SFX={ click:{f0:660,f1:520,dur:.07,type:"triangle",v:.05}, hit:{f0:180,f1:70,dur:.12,type:"square",v:.06}, skill:{f0:440,f1:880,dur:.22,type:"triangle",v:.06}, win:{f0:523,f1:1046,dur:.5,type:"triangle",v:.06}, lose:{f0:330,f1:110,dur:.5,type:"sawtooth",v:.05}, recruit:{f0:392,f1:784,dur:.3,type:"triangle",v:.07}, recruitR:{f0:659,f1:1318,dur:.4,type:"triangle",v:.07},
+ skillHit:{f0:260,f1:85,dur:.14,type:"square",v:.055}, skAoe:{f0:120,f1:48,dur:.5,type:"sawtooth",v:.05}, skHeal:{f0:740,f1:1180,dur:.3,type:"sine",v:.06}, skBuff:{f0:520,f1:760,dur:.25,type:"triangle",v:.05} };
+
+/* ============ 背景音乐 ============ */
+let BGM=null;
+function initBGM(){
+  if(BGM) return;
+  try{
+    BGM=new Audio("assets/bgm-sanguo.wav");
+    BGM.loop=true; BGM.volume=.32;
+    BGM.addEventListener("error",()=>{ BGM=null; });
+  }catch(e){ BGM=null; }
+}
+function tryPlayBGM(){
+  if(!S.music) return;
+  initBGM(); if(!BGM) return;
+  const p=BGM.play(); if(p&&p.catch) p.catch(()=>{});
+}
+function applyMusic(){ if(S.music) tryPlayBGM(); else if(BGM){ BGM.pause(); } }
+
+/* ============ 数据：武将 ============ */
+const FAC={wei:{n:"魏",c:"#4a7fd4"},shu:{n:"蜀",c:"#d4402f"},wu:{n:"吴",c:"#2f9e6e"},qun:{n:"群",c:"#8f5fc7"}};
+const RAR={r:{n:"精良",c:"#5b8def",ord:1},sr:{n:"稀有",c:"#9b6df0",ord:2},ssr:{n:"史诗",c:"#f0a63a",ord:3},ur:{n:"传说",c:"#e8453a",ord:4}};
+const ROLES={out:"输出",tank:"坦克",supp:"辅助",heal:"治疗",ass:"刺客"};
+function hd(id,name,fac,rar,role,glyph,skn,skd,skt,skp,skx){return{id,name,fac,rar,role,glyph,sk:{n:skn,d:skd,t:skt,p:skp,x:skx||{}}}}
+const H={};
+const HRAW=[
+["wei_cao","曹操","wei","ssr","supp","操","号令天下","号令天下，对敌方全体造成105%攻击伤害，并使我方全体攻击提升12%（持续2回合）","combo",105,{steps:[{t:"dmgAll",p:105},{t:"buffAtk",p:12}]}],
+["wei_sima","司马懿","wei","ssr","out","懿","鹰视狼顾","鹰视狼顾，对敌方生命最低的武将造成240%攻击伤害","dmgLow",240,{}],
+["wei_zhangliao","张辽","wei","ssr","out","辽","威震逍遥津","威震逍遥津，对敌方单体造成260%攻击伤害","dmg",260,{}],
+["wei_xiahoudun","夏侯惇","wei","ssr","tank","惇","拔矢啖睛","拔矢啖睛，对敌方单体造成170%攻击伤害，并治疗自身80%攻击生命","combo",170,{steps:[{t:"dmg",p:170},{t:"healSelf",p:80}]}],
+["wei_guojia","郭嘉","wei","sr","supp","嘉","十胜十败","十胜十败，使我方全体攻击提升15%（持续2回合），并对敌方全体造成70%攻击伤害","combo",70,{steps:[{t:"buffAtk",p:15},{t:"dmgAll",p:70}]}],
+["wei_xuchu","许褚","wei","sr","tank","褚","裸衣鏖战","裸衣鏖战，对敌方单体造成200%攻击伤害，并提升自身20%防御（2回合）","combo",200,{steps:[{t:"dmg",p:200},{t:"buffDefSelf",p:20}]}],
+["wei_zhenji","甄姬","wei","sr","heal","甄","洛神赋","洛神赋，治疗我方生命最低的武将150%攻击生命，并治疗次低生命武将60%攻击生命","combo",150,{steps:[{t:"healLow",p:150},{t:"healLow2",p:60}]}],
+["wei_xunyu","荀彧","wei","sr","supp","彧","王佐之才","王佐之才，使我方全体防御提升20%（持续2回合）","buffDef",20,{}],
+["wei_xiahouyuan","夏侯渊","wei","sr","out","渊","疾风劲矢","疾风劲矢，对敌方单体造成210%攻击伤害","dmg",210,{}],
+["wei_caoren","曹仁","wei","sr","tank","仁","固若金汤","固若金汤，对敌方单体造成130%攻击伤害，并使我方全体防御提升12%（2回合）","combo",130,{steps:[{t:"dmg",p:130},{t:"buffDef",p:12}]}],
+["wei_yujin","于禁","wei","r","tank","禁","毅重","毅重，对敌方单体造成150%攻击伤害，并提升自身15%防御（2回合）","combo",150,{steps:[{t:"dmg",p:150},{t:"buffDefSelf",p:15}]}],
+["wei_yuejin","乐进","wei","r","out","进","先登陷阵","先登陷阵，对敌方单体造成175%攻击伤害","dmg",175,{}],
+["shu_zhugeliang","诸葛亮","shu","ur","supp","亮","七星借命","七星借命，对敌方全体造成125%攻击伤害，并使我方全体攻击提升15%（2回合）","combo",125,{steps:[{t:"dmgAll",p:125},{t:"buffAtk",p:15}]}],
+["shu_guanyu","关羽","shu","ssr","out","羽","青龙偃月","青龙偃月，对敌方单体造成270%攻击伤害，暴击率提升30%","dmg",270,{crit:30}],
+["shu_zhaoyun","赵云","shu","ssr","ass","云","七进七出","七进七出，连续攻击敌方单体2次，每次造成110%攻击伤害","dmg2",110,{}],
+["shu_liubei","刘备","shu","ssr","supp","备","仁德济世","仁德济世，治疗我方全体75%攻击生命，并使我方全体防御提升10%（2回合）","combo",75,{steps:[{t:"healAll",p:75},{t:"buffDef",p:10}]}],
+["shu_zhangfei","张飞","shu","ssr","tank","飞","燕人咆哮","燕人咆哮，对敌方全体造成90%攻击伤害，并有40%概率眩晕1回合","stunAll",90,{stunC:40}],
+["shu_machao","马超","shu","sr","ass","超","西凉铁骑","西凉铁骑，对敌方单体造成215%攻击伤害，速度提升8%（2回合）","combo",215,{steps:[{t:"dmg",p:215},{t:"spdSelf",p:8}]}],
+["shu_huangzhong","黄忠","shu","sr","out","忠","百步穿杨","百步穿杨，对敌方单体造成235%攻击伤害","dmg",235,{}],
+["shu_pangtong","庞统","shu","sr","supp","统","连环计","连环计，对敌方全体造成95%攻击伤害，并有30%概率眩晕1回合","stunAll",95,{stunC:30}],
+["shu_weiyan","魏延","shu","sr","out","延","子午奇袭","子午奇袭，对敌方单体造成220%攻击伤害","dmg",220,{}],
+["shu_fazheng","法正","shu","sr","supp","正","反客为主","反客为主，使我方全体攻击提升12%（2回合），并治疗我方生命最低的武将90%攻击生命","combo",90,{steps:[{t:"buffAtk",p:12},{t:"healLow",p:90}]}],
+["shu_liaohua","廖化","shu","r","tank","化","蜀中宿将","蜀中宿将，对敌方单体造成145%攻击伤害，并提升自身12%防御（2回合）","combo",145,{steps:[{t:"dmg",p:145},{t:"buffDefSelf",p:12}]}],
+["shu_guanping","关平","shu","r","out","平","随父远征","随父远征，对敌方单体造成170%攻击伤害","dmg",170,{}],
+["wu_zhouyu","周瑜","wu","ur","out","瑜","火烧赤壁","火烧赤壁，对敌方全体造成140%攻击伤害","dmgAll",140,{}],
+["wu_sunquan","孙权","wu","ssr","supp","权","制衡天下","制衡天下，使我方全体攻击提升15%（2回合），并治疗我方全体50%攻击生命","combo",50,{steps:[{t:"buffAtk",p:15},{t:"healAll",p:50}]}],
+["wu_luxun","陆逊","wu","ssr","out","逊","火烧连营","火烧连营，对敌方全体造成115%攻击伤害","dmgAll",115,{}],
+["wu_sunshangxiang","孙尚香","wu","ssr","out","香","弓腰姬","弓腰姬，对敌方单体造成225%攻击伤害，暴击率提升20%","dmg",225,{crit:20}],
+["wu_taishici","太史慈","wu","ssr","ass","慈","双戟连击","双戟连击，连续攻击敌方单体2次，每次造成100%攻击伤害","dmg2",100,{}],
+["wu_ganning","甘宁","wu","sr","ass","宁","锦帆游侠","锦帆游侠，对敌方单体造成230%攻击伤害","dmg",230,{}],
+["wu_daqiao","大乔","wu","sr","heal","乔","流风回雪","流风回雪，治疗我方生命最低的武将160%攻击生命","healLow",160,{}],
+["wu_xiaoqiao","小乔","wu","sr","heal","乔","周郎顾曲","周郎顾曲，治疗我方全体70%攻击生命，并使我方全体攻击提升8%（2回合）","combo",70,{steps:[{t:"healAll",p:70},{t:"buffAtk",p:8}]}],
+["wu_huanggai","黄盖","wu","sr","tank","盖","苦肉计","苦肉计，对敌方单体造成160%攻击伤害，并治疗自身100%攻击生命","combo",160,{steps:[{t:"dmg",p:160},{t:"healSelf",p:100}]}],
+["wu_lusu","鲁肃","wu","sr","supp","肃","单刀赴会","单刀赴会，使我方全体防御提升18%（持续2回合）","buffDef",18,{}],
+["wu_dingfeng","丁奉","wu","r","tank","奉","雪中奋短","雪中奋短，对敌方单体造成150%攻击伤害，并提升自身12%防御（2回合）","combo",150,{steps:[{t:"dmg",p:150},{t:"buffDefSelf",p:12}]}],
+["wu_zhuran","朱然","wu","r","out","然","江表虎臣","江表虎臣，对敌方单体造成180%攻击伤害","dmg",180,{}],
+["qun_lvbu","吕布","qun","ur","out","布","天下无双","天下无双，对敌方单体造成300%攻击伤害","dmg",300,{}],
+["qun_diaochan","貂蝉","qun","ssr","supp","蝉","闭月","闭月，对敌方单体造成130%攻击伤害，并有45%概率使其眩晕1回合","stun",130,{stunC:45}],
+["qun_huatuo","华佗","qun","ssr","heal","佗","青囊济世","青囊济世，治疗我方全体85%攻击生命","healAll",85,{}],
+["qun_dongzhuo","董卓","qun","ssr","tank","卓","暴虐无常","暴虐无常，对敌方全体造成85%攻击伤害，并治疗自身60%攻击生命","combo",85,{steps:[{t:"dmgAll",p:85},{t:"healSelf",p:60}]}],
+["qun_yuanshao","袁绍","qun","ssr","supp","绍","四世三公","四世三公，使我方全体攻击提升12%（2回合），并对敌方全体造成70%攻击伤害","combo",70,{steps:[{t:"buffAtk",p:12},{t:"dmgAll",p:70}]}],
+["qun_zuoci","左慈","qun","sr","out","慈","遁甲天书","遁甲天书，对敌方单体造成240%攻击伤害","dmg",240,{}],
+["qun_zhangjiao","张角","qun","sr","supp","角","黄天当立","黄天当立，对敌方全体造成100%攻击伤害，并有30%概率眩晕1回合","stunAll",100,{stunC:30}],
+["qun_gaoshun","高顺","qun","sr","tank","顺","陷阵营","陷阵营，对敌方单体造成175%攻击伤害，并提升自身15%防御（2回合）","combo",175,{steps:[{t:"dmg",p:175},{t:"buffDefSelf",p:15}]}],
+["qun_caiwenji","蔡文姬","qun","sr","heal","姬","胡笳十八拍","胡笳十八拍，治疗我方全体65%攻击生命，并使我方全体防御提升10%（2回合）","combo",65,{steps:[{t:"healAll",p:65},{t:"buffDef",p:10}]}],
+["qun_menghuo","孟获","qun","sr","tank","获","南蛮入侵","南蛮入侵，对敌方单体造成155%攻击伤害，并治疗自身80%攻击生命","combo",155,{steps:[{t:"dmg",p:155},{t:"healSelf",p:80}]}],
+["qun_panfeng","潘凤","qun","r","out","凤","无双上将","无双上将，对敌方单体造成185%攻击伤害","dmg",185,{}],
+["qun_huaxiong","华雄","qun","r","tank","雄","关西猛士","关西猛士，对敌方单体造成150%攻击伤害，并提升自身12%防御（2回合）","combo",150,{steps:[{t:"dmg",p:150},{t:"buffDefSelf",p:12}]}]
+];
+HRAW.forEach(r=>{const h=hd(r[0],r[1],r[2],r[3],r[4],r[5],r[6],r[7],r[8],r[9],r[10]);H[h.id]=h;});
+const HERO_IDS=Object.keys(H);
+
+/* ============ 数据：第二技能 与 无双大招（7星解锁） ============ */
+const SK2={
+ wei_cao:{n:"青釭剑出",d:"青釭剑出，对敌方全体造成130%攻击伤害，并使我方全体攻击提升12%（持续2回合）",t:"combo",p:130,x:{steps:[{t:"dmgAll",p:130},{t:"buffAtk",p:12}]}},
+ wei_sima:{n:"鹰视",d:"鹰视，对敌方生命最低的武将造成260%攻击伤害",t:"dmgLow",p:260,x:{}},
+ wei_zhangliao:{n:"突袭",d:"突袭，对敌方单体造成280%攻击伤害",t:"dmg",p:280,x:{}},
+ wei_xiahoudun:{n:"刚烈",d:"刚烈，对敌方单体造成200%攻击伤害，并治疗自身100%攻击生命",t:"combo",p:200,x:{steps:[{t:"dmg",p:200},{t:"healSelf",p:100}]}},
+ wei_guojia:{n:"遗计",d:"遗计，治疗我方生命最低的武将150%攻击生命，并使其攻击提升10%（2回合）",t:"combo",p:150,x:{steps:[{t:"healLow",p:150},{t:"buffAtk",p:10}]}},
+ wei_xuchu:{n:"虎痴",d:"虎痴，对敌方单体造成220%攻击伤害，并治疗自身100%攻击生命",t:"combo",p:220,x:{steps:[{t:"dmg",p:220},{t:"healSelf",p:100}]}},
+ wei_zhenji:{n:"惊鸿",d:"惊鸿，治疗我方生命最低的武将180%攻击生命，并治疗次低生命武将80%攻击生命",t:"combo",p:180,x:{steps:[{t:"healLow",p:180},{t:"healLow2",p:80}]}},
+ wei_xunyu:{n:"驱虎吞狼",d:"驱虎吞狼，对敌方全体造成80%攻击伤害，并使我方全体防御提升15%（2回合）",t:"combo",p:80,x:{steps:[{t:"dmgAll",p:80},{t:"buffDef",p:15}]}},
+ wei_xiahouyuan:{n:"神速",d:"神速，对敌方单体造成250%攻击伤害",t:"dmg",p:250,x:{}},
+ wei_caoren:{n:"据守",d:"据守，对敌方单体造成160%攻击伤害，并使我方全体防御提升15%（2回合）",t:"combo",p:160,x:{steps:[{t:"dmg",p:160},{t:"buffDef",p:15}]}},
+ wei_yujin:{n:"严整",d:"严整，对敌方单体造成180%攻击伤害，并提升自身15%防御（2回合）",t:"combo",p:180,x:{steps:[{t:"dmg",p:180},{t:"buffDefSelf",p:15}]}},
+ wei_yuejin:{n:"先登",d:"先登，对敌方单体造成210%攻击伤害",t:"dmg",p:210,x:{}},
+ shu_zhugeliang:{n:"空城计",d:"空城计，对敌方全体造成150%攻击伤害，并使我方全体防御提升12%（2回合）",t:"combo",p:150,x:{steps:[{t:"dmgAll",p:150},{t:"buffDef",p:12}]}},
+ shu_guanyu:{n:"温酒斩将",d:"温酒斩将，对敌方单体造成300%攻击伤害，暴击率提升25%",t:"dmg",p:300,x:{crit:25}},
+ shu_zhaoyun:{n:"龙胆",d:"龙胆，连续攻击敌方单体2次，每次造成140%攻击伤害",t:"dmg2",p:140,x:{}},
+ shu_liubei:{n:"桃园之义",d:"桃园之义，治疗我方全体95%攻击生命，并使我方全体攻击提升8%（2回合）",t:"combo",p:95,x:{steps:[{t:"healAll",p:95},{t:"buffAtk",p:8}]}},
+ shu_zhangfei:{n:"丈八蛇矛",d:"丈八蛇矛，对敌方全体造成115%攻击伤害，并有40%概率眩晕1回合",t:"stunAll",p:115,x:{stunC:40}},
+ shu_machao:{n:"锦马超",d:"锦马超，对敌方单体造成245%攻击伤害，速度提升8%（2回合）",t:"combo",p:245,x:{steps:[{t:"dmg",p:245},{t:"spdSelf",p:8}]}},
+ shu_huangzhong:{n:"老当益壮",d:"老当益壮，对敌方单体造成265%攻击伤害，暴击率提升15%",t:"dmg",p:265,x:{crit:15}},
+ shu_pangtong:{n:"铁索连环",d:"铁索连环，对敌方全体造成115%攻击伤害，并有30%概率眩晕1回合",t:"stunAll",p:115,x:{stunC:30}},
+ shu_weiyan:{n:"傲骨",d:"傲骨，对敌方单体造成240%攻击伤害，并治疗自身60%攻击生命",t:"combo",p:240,x:{steps:[{t:"dmg",p:240},{t:"healSelf",p:60}]}},
+ shu_fazheng:{n:"奇谋",d:"奇谋，治疗我方生命最低的武将130%攻击生命，并使我方全体攻击提升10%（2回合）",t:"combo",p:130,x:{steps:[{t:"healLow",p:130},{t:"buffAtk",p:10}]}},
+ shu_liaohua:{n:"老骥伏枥",d:"老骥伏枥，对敌方单体造成170%攻击伤害，并治疗自身60%攻击生命",t:"combo",p:170,x:{steps:[{t:"dmg",p:170},{t:"healSelf",p:60}]}},
+ shu_guanping:{n:"忠勇",d:"忠勇，对敌方单体造成200%攻击伤害，暴击率提升10%",t:"dmg",p:200,x:{crit:10}},
+ wu_zhouyu:{n:"雅量",d:"雅量，对敌方全体造成160%攻击伤害",t:"dmgAll",p:160,x:{}},
+ wu_sunquan:{n:"固守江东",d:"固守江东，对敌方全体造成100%攻击伤害，并使我方全体攻击提升12%（持续2回合）",t:"combo",p:100,x:{steps:[{t:"dmgAll",p:100},{t:"buffAtk",p:12}]}},
+ wu_luxun:{n:"儒将",d:"儒将，对敌方全体造成140%攻击伤害",t:"dmgAll",p:140,x:{}},
+ wu_sunshangxiang:{n:"枭姬",d:"枭姬，对敌方单体造成260%攻击伤害，暴击率提升20%",t:"dmg",p:260,x:{crit:20}},
+ wu_taishici:{n:"神射",d:"神射，连续攻击敌方单体2次，每次造成130%攻击伤害",t:"dmg2",p:130,x:{}},
+ wu_ganning:{n:"百骑劫营",d:"百骑劫营，对敌方单体造成260%攻击伤害，速度提升8%（2回合）",t:"combo",p:260,x:{steps:[{t:"dmg",p:260},{t:"spdSelf",p:8}]}},
+ wu_daqiao:{n:"回雪",d:"回雪，治疗我方生命最低的武将190%攻击生命",t:"healLow",p:190,x:{}},
+ wu_xiaoqiao:{n:"顾曲",d:"顾曲，治疗我方全体95%攻击生命，并使我方全体攻击提升8%（2回合）",t:"combo",p:95,x:{steps:[{t:"healAll",p:95},{t:"buffAtk",p:8}]}},
+ wu_huanggai:{n:"赤胆",d:"赤胆，对敌方单体造成190%攻击伤害，并治疗自身100%攻击生命",t:"combo",p:190,x:{steps:[{t:"dmg",p:190},{t:"healSelf",p:100}]}},
+ wu_lusu:{n:"联刘抗曹",d:"联刘抗曹，使我方全体防御提升20%、攻击提升10%（持续2回合）",t:"combo",p:20,x:{steps:[{t:"buffDef",p:20},{t:"buffAtk",p:10}]}},
+ wu_dingfeng:{n:"奋迅",d:"奋迅，对敌方单体造成175%攻击伤害，并提升自身12%防御（2回合）",t:"combo",p:175,x:{steps:[{t:"dmg",p:175},{t:"buffDefSelf",p:12}]}},
+ wu_zhuran:{n:"敢战",d:"敢战，对敌方单体造成210%攻击伤害，暴击率提升10%",t:"dmg",p:210,x:{crit:10}},
+ qun_lvbu:{n:"赤兔",d:"赤兔，对敌方单体造成340%攻击伤害，速度提升8%（2回合）",t:"combo",p:340,x:{steps:[{t:"dmg",p:340},{t:"spdSelf",p:8}]}},
+ qun_diaochan:{n:"离间",d:"离间，对敌方单体造成160%攻击伤害，并有40%概率眩晕1回合",t:"stun",p:160,x:{stunC:40}},
+ qun_huatuo:{n:"五禽戏",d:"五禽戏，治疗我方全体105%攻击生命",t:"healAll",p:105,x:{}},
+ qun_dongzhuo:{n:"暴虐",d:"暴虐，对敌方全体造成105%攻击伤害，并治疗自身80%攻击生命",t:"combo",p:105,x:{steps:[{t:"dmgAll",p:105},{t:"healSelf",p:80}]}},
+ qun_yuanshao:{n:"名门",d:"名门，对敌方全体造成100%攻击伤害，并使我方全体攻击提升12%（2回合）",t:"combo",p:100,x:{steps:[{t:"dmgAll",p:100},{t:"buffAtk",p:12}]}},
+ qun_zuoci:{n:"幻术",d:"幻术，对敌方单体造成270%攻击伤害，并治疗自身60%攻击生命",t:"combo",p:270,x:{steps:[{t:"dmg",p:270},{t:"healSelf",p:60}]}},
+ qun_zhangjiao:{n:"符水",d:"符水，对敌方全体造成115%攻击伤害，并有35%概率眩晕1回合",t:"stunAll",p:115,x:{stunC:35}},
+ qun_gaoshun:{n:"陷阵",d:"陷阵，对敌方单体造成200%攻击伤害，并提升自身15%防御（2回合）",t:"combo",p:200,x:{steps:[{t:"dmg",p:200},{t:"buffDefSelf",p:15}]}},
+ qun_caiwenji:{n:"胡笳",d:"胡笳，治疗我方生命最低的武将140%攻击生命，并使我方全体防御提升8%（2回合）",t:"combo",p:140,x:{steps:[{t:"healLow",p:140},{t:"buffDef",p:8}]}},
+ qun_menghuo:{n:"南蛮",d:"南蛮，对敌方单体造成180%攻击伤害，并治疗自身80%攻击生命",t:"combo",p:180,x:{steps:[{t:"dmg",p:180},{t:"healSelf",p:80}]}},
+ qun_panfeng:{n:"无双",d:"无双，对敌方单体造成220%攻击伤害，暴击率提升15%",t:"dmg",p:220,x:{crit:15}},
+ qun_huaxiong:{n:"关西",d:"关西，对敌方单体造成175%攻击伤害，并治疗自身70%攻击生命",t:"combo",p:175,x:{steps:[{t:"dmg",p:175},{t:"healSelf",p:70}]}}
+};
+const SKU={
+ wei_cao:{n:"魏武挥鞭",d:"魏武挥鞭，对敌方全体造成170%攻击伤害，并治疗自身60%攻击生命",t:"combo",p:170,x:{steps:[{t:"dmgAll",p:170},{t:"healSelf",p:60}]}},
+ wei_sima:{n:"冢虎出山",d:"冢虎出山，对敌方全体造成160%攻击伤害，并治疗自身80%攻击生命",t:"combo",p:160,x:{steps:[{t:"dmgAll",p:160},{t:"healSelf",p:80}]}},
+ wei_zhangliao:{n:"八百破十万",d:"八百破十万，对敌方全体造成150%攻击伤害，并有30%概率眩晕1回合",t:"stunAll",p:150,x:{stunC:30}},
+ wei_xiahoudun:{n:"独眼龙吟",d:"独眼龙吟，对敌方单体造成260%攻击伤害，并治疗自身140%攻击生命",t:"combo",p:260,x:{steps:[{t:"dmg",p:260},{t:"healSelf",p:140}]}},
+ wei_guojia:{n:"鬼谋",d:"鬼谋，对敌方全体造成130%攻击伤害，并使我方全体攻击提升12%（2回合）",t:"combo",p:130,x:{steps:[{t:"dmgAll",p:130},{t:"buffAtk",p:12}]}},
+ wei_xuchu:{n:"裸衣血战",d:"裸衣血战，对敌方全体造成140%攻击伤害，并提升自身25%防御（2回合）",t:"combo",p:140,x:{steps:[{t:"dmgAll",p:140},{t:"buffDefSelf",p:25}]}},
+ wei_zhenji:{n:"洛神降临",d:"洛神降临，治疗我方全体130%攻击生命，并使我方全体防御提升15%（2回合）",t:"combo",p:130,x:{steps:[{t:"healAll",p:130},{t:"buffDef",p:15}]}},
+ wei_xunyu:{n:"居中持重",d:"居中持重，使我方全体攻击提升18%、防御提升15%（持续2回合）",t:"combo",p:18,x:{steps:[{t:"buffAtk",p:18},{t:"buffDef",p:15}]}},
+ wei_xiahouyuan:{n:"三箭连珠",d:"三箭连珠，连续攻击敌方生命最低的武将3次，每次造成95%攻击伤害",t:"combo",p:95,x:{steps:[{t:"dmg",p:95},{t:"dmg",p:95},{t:"dmg",p:95}]}},
+ wei_caoren:{n:"铁壁雄关",d:"铁壁雄关，对敌方全体造成120%攻击伤害，并使我方全体防御提升20%（2回合）",t:"combo",p:120,x:{steps:[{t:"dmgAll",p:120},{t:"buffDef",p:20}]}},
+ wei_yujin:{n:"青州军魂",d:"青州军魂，对敌方全体造成125%攻击伤害，并治疗自身100%攻击生命",t:"combo",p:125,x:{steps:[{t:"dmgAll",p:125},{t:"healSelf",p:100}]}},
+ wei_yuejin:{n:"陷阵死士",d:"陷阵死士，连续攻击敌方单体2次，每次造成130%攻击伤害",t:"combo",p:130,x:{steps:[{t:"dmg",p:130},{t:"dmg",p:130}]}},
+ shu_zhugeliang:{n:"神机妙算",d:"神机妙算，对敌方全体造成180%攻击伤害，并使我方全体攻击提升15%（2回合）",t:"combo",p:180,x:{steps:[{t:"dmgAll",p:180},{t:"buffAtk",p:15}]}},
+ shu_guanyu:{n:"武圣降世",d:"武圣降世，对敌方全体造成160%攻击伤害，并有35%概率眩晕1回合",t:"stunAll",p:160,x:{stunC:35}},
+ shu_zhaoyun:{n:"常山龙魂",d:"常山龙魂，连续攻击敌方生命最低的武将3次，每次造成120%攻击伤害",t:"combo",p:120,x:{steps:[{t:"dmg",p:120},{t:"dmg",p:120},{t:"dmg",p:120}]}},
+ shu_liubei:{n:"仁君之德",d:"仁君之德，治疗我方全体120%攻击生命，并使我方全体攻击提升10%（2回合）",t:"combo",p:120,x:{steps:[{t:"healAll",p:120},{t:"buffAtk",p:10}]}},
+ shu_zhangfei:{n:"当阳桥断",d:"当阳桥断，对敌方全体造成150%攻击伤害，并有50%概率眩晕1回合",t:"stunAll",p:150,x:{stunC:50}},
+ shu_machao:{n:"神威天将",d:"神威天将，对敌方全体造成135%攻击伤害",t:"dmgAll",p:135,x:{}},
+ shu_huangzhong:{n:"落日神箭",d:"落日神箭，对敌方生命最低的武将造成300%攻击伤害",t:"dmgLow",p:300,x:{}},
+ shu_pangtong:{n:"凤雏展翅",d:"凤雏展翅，对敌方全体造成140%攻击伤害，并有40%概率眩晕1回合",t:"stunAll",p:140,x:{stunC:40}},
+ shu_weiyan:{n:"子午奇谋",d:"子午奇谋，对敌方单体造成280%攻击伤害，并治疗自身80%攻击生命",t:"combo",p:280,x:{steps:[{t:"dmg",p:280},{t:"healSelf",p:80}]}},
+ shu_fazheng:{n:"恩怨分明",d:"恩怨分明，对敌方全体造成120%攻击伤害，并治疗我方全体60%攻击生命",t:"combo",p:120,x:{steps:[{t:"dmgAll",p:120},{t:"healAll",p:60}]}},
+ shu_liaohua:{n:"先锋殿后",d:"先锋殿后，对敌方全体造成120%攻击伤害，并提升自身20%防御（2回合）",t:"combo",p:120,x:{steps:[{t:"dmgAll",p:120},{t:"buffDefSelf",p:20}]}},
+ shu_guanping:{n:"青龙继业",d:"青龙继业，连续攻击敌方单体2次，每次造成125%攻击伤害",t:"combo",p:125,x:{steps:[{t:"dmg",p:125},{t:"dmg",p:125}]}},
+ wu_zhouyu:{n:"江东风流",d:"江东风流，对敌方全体造成190%攻击伤害，并有30%概率眩晕1回合",t:"stunAll",p:190,x:{stunC:30}},
+ wu_sunquan:{n:"碧眼紫髯",d:"碧眼紫髯，对敌方全体造成130%攻击伤害，并使我方全体攻击提升12%（2回合）",t:"combo",p:130,x:{steps:[{t:"dmgAll",p:130},{t:"buffAtk",p:12}]}},
+ wu_luxun:{n:"书生拜将",d:"书生拜将，对敌方全体造成165%攻击伤害",t:"dmgAll",p:165,x:{}},
+ wu_sunshangxiang:{n:"连弩齐射",d:"连弩齐射，连续攻击敌方生命最低的武将3次，每次造成100%攻击伤害",t:"combo",p:100,x:{steps:[{t:"dmg",p:100},{t:"dmg",p:100},{t:"dmg",p:100}]}},
+ wu_taishici:{n:"双戟裂空",d:"双戟裂空，连续攻击敌方生命最低的武将3次，每次造成110%攻击伤害",t:"combo",p:110,x:{steps:[{t:"dmg",p:110},{t:"dmg",p:110},{t:"dmg",p:110}]}},
+ wu_ganning:{n:"锦帆夜袭",d:"锦帆夜袭，对敌方全体造成135%攻击伤害，并有25%概率眩晕1回合",t:"stunAll",p:135,x:{stunC:25}},
+ wu_daqiao:{n:"江东二乔",d:"江东二乔，治疗我方全体110%攻击生命，并使我方全体攻击提升10%（2回合）",t:"combo",p:110,x:{steps:[{t:"healAll",p:110},{t:"buffAtk",p:10}]}},
+ wu_xiaoqiao:{n:"国色天香",d:"国色天香，治疗我方全体120%攻击生命，并使我方全体防御提升12%（2回合）",t:"combo",p:120,x:{steps:[{t:"healAll",p:120},{t:"buffDef",p:12}]}},
+ wu_huanggai:{n:"苦肉血战",d:"苦肉血战，对敌方全体造成130%攻击伤害，并治疗自身120%攻击生命",t:"combo",p:130,x:{steps:[{t:"dmgAll",p:130},{t:"healSelf",p:120}]}},
+ wu_lusu:{n:"榻上策",d:"榻上策，使我方全体攻击提升18%、防御提升12%（持续2回合）",t:"combo",p:18,x:{steps:[{t:"buffAtk",p:18},{t:"buffDef",p:12}]}},
+ wu_dingfeng:{n:"雪夜突袭",d:"雪夜突袭，对敌方全体造成125%攻击伤害，并提升自身18%防御（2回合）",t:"combo",p:125,x:{steps:[{t:"dmgAll",p:125},{t:"buffDefSelf",p:18}]}},
+ wu_zhuran:{n:"虎啸江表",d:"虎啸江表，对敌方单体造成250%攻击伤害",t:"dmg",p:250,x:{}},
+ qun_lvbu:{n:"辕门射戟",d:"辕门射戟，对敌方全体造成175%攻击伤害，并有35%概率眩晕1回合",t:"stunAll",p:175,x:{stunC:35}},
+ qun_diaochan:{n:"月下霓裳",d:"月下霓裳，对敌方全体造成130%攻击伤害，并有40%概率眩晕1回合",t:"stunAll",p:130,x:{stunC:40}},
+ qun_huatuo:{n:"起死回生",d:"起死回生，治疗我方全体140%攻击生命，并使我方全体防御提升12%（2回合）",t:"combo",p:140,x:{steps:[{t:"healAll",p:140},{t:"buffDef",p:12}]}},
+ qun_dongzhuo:{n:"酒池肉林",d:"酒池肉林，对敌方全体造成150%攻击伤害，并治疗自身120%攻击生命",t:"combo",p:150,x:{steps:[{t:"dmgAll",p:150},{t:"healSelf",p:120}]}},
+ qun_yuanshao:{n:"官渡举兵",d:"官渡举兵，对敌方全体造成135%攻击伤害，并使我方全体攻击提升12%（2回合）",t:"combo",p:135,x:{steps:[{t:"dmgAll",p:135},{t:"buffAtk",p:12}]}},
+ qun_zuoci:{n:"仙人指路",d:"仙人指路，对敌方全体造成140%攻击伤害，并治疗自身90%攻击生命",t:"combo",p:140,x:{steps:[{t:"dmgAll",p:140},{t:"healSelf",p:90}]}},
+ qun_zhangjiao:{n:"天公将军",d:"天公将军，对敌方全体造成150%攻击伤害，并有40%概率眩晕1回合",t:"stunAll",p:150,x:{stunC:40}},
+ qun_gaoshun:{n:"陷阵营冲",d:"陷阵营冲，对敌方全体造成125%攻击伤害，并提升自身20%防御（2回合）",t:"combo",p:125,x:{steps:[{t:"dmgAll",p:125},{t:"buffDefSelf",p:20}]}},
+ qun_caiwenji:{n:"悲歌当泣",d:"悲歌当泣，治疗我方全体115%攻击生命，并使我方全体攻击提升10%（2回合）",t:"combo",p:115,x:{steps:[{t:"healAll",p:115},{t:"buffAtk",p:10}]}},
+ qun_menghuo:{n:"象兵践踏",d:"象兵践踏，对敌方全体造成130%攻击伤害，并有30%概率眩晕1回合",t:"stunAll",p:130,x:{stunC:30}},
+ qun_panfeng:{n:"上将威名",d:"上将威名，对敌方单体造成260%攻击伤害，暴击率提升20%",t:"dmg",p:260,x:{crit:20}},
+ qun_huaxiong:{n:"汜水关前",d:"汜水关前，对敌方全体造成120%攻击伤害，并治疗自身100%攻击生命",t:"combo",p:120,x:{steps:[{t:"dmgAll",p:120},{t:"healSelf",p:100}]}}
+};
+HERO_IDS.forEach(id=>{ if(SK2[id]) H[id].sk2=SK2[id]; if(SKU[id]) H[id].skU=SKU[id]; });
+/* 无双技能 cut-in 立绘映射：{ 武将id: { 技能槽: 图片路径 } }（当前仅吕布） */
+const ULT_ART={ qun_lvbu:{ sk:"assets/ult-lvbu-sk.png", sk2:"assets/ult-lvbu-sk2.png", skU:"assets/ult-lvbu.png" }, wu_zhouyu:{ sk:"assets/ult-zhouyu-sk.png", sk2:"assets/ult-zhouyu-sk2.png", skU:"assets/ult-zhouyu.png" }, shu_zhugeliang:{ sk:"assets/ult-zhuge-sk.png", sk2:"assets/ult-zhuge-sk2.png", skU:"assets/ult-zhuge.png" }, wei_cao:{ sk:"assets/ult-caocao-sk.png", sk2:"assets/ult-caocao-sk2.png", skU:"assets/ult-caocao.png" }, shu_liubei:{ sk:"assets/ult-liubei-sk.png", sk2:"assets/ult-liubei-sk2.png", skU:"assets/ult-liubei.png" }, shu_guanyu:{ sk:"assets/ult-guanyu-sk.png", sk2:"assets/ult-guanyu-sk2.png", skU:"assets/ult-guanyu.png" }, qun_diaochan:{ sk:"assets/ult-diaochan-sk.png", sk2:"assets/ult-diaochan-sk2.png", skU:"assets/ult-diaochan.png" }, shu_zhangfei:{ sk:"assets/ult-zhangfei-sk.png", sk2:"assets/ult-zhangfei-sk2.png", skU:"assets/ult-zhangfei.png" }, shu_zhaoyun:{ sk:"assets/ult-zhaoyun-sk.png", sk2:"assets/ult-zhaoyun-sk2.png", skU:"assets/ult-zhaoyun.png" } };
+const BASE_STATS={r:{atk:46,hp:520,def:32,spd:80},sr:{atk:64,hp:730,def:46,spd:92},ssr:{atk:84,hp:980,def:62,spd:104},ur:{atk:108,hp:1240,def:82,spd:118}};
+const ROLE_M={out:{atk:1.12,hp:.92,def:.92,spd:1.02},tank:{atk:.82,hp:1.32,def:1.22,spd:.92},supp:{atk:.94,hp:1.06,def:1.02,spd:1.04},heal:{atk:.86,hp:1.02,def:1.06,spd:.98},ass:{atk:1.08,hp:.86,def:.88,spd:1.18}};
+
+/* ============ 数据：羁绊 ============ */
+const BONDS=[
+{id:"taoyuan",name:"桃园结义",heroes:["shu_liubei","shu_guanyu","shu_zhangfei"],desc:"全队攻击+18%｜开局：削减敌方全体10%生命",eff:{atkPct:18},start:{t:"hpCut",p:10}},
+{id:"wolong",name:"卧龙凤雏",heroes:["shu_zhugeliang","shu_pangtong"],desc:"全队技能伤害+15%｜开局：敌方全体怒气-20",eff:{skPct:15},start:{t:"enE",n:20}},
+{id:"wuhu",name:"五虎上将",heroes:["shu_guanyu","shu_zhangfei","shu_zhaoyun","shu_machao","shu_huangzhong"],desc:"全队攻击+25%、生命+15%｜开局：我军全体怒气+25",eff:{atkPct:25,hpPct:15},start:{t:"enS",n:25}},
+{id:"caowei",name:"曹魏基业",heroes:["wei_cao","wei_sima","wei_xiahoudun"],desc:"全队攻击+12%、防御+12%｜开局：我军全体怒气+15",eff:{atkPct:12,defPct:12},start:{t:"enS",n:15}},
+{id:"wuzi",name:"五子良将",heroes:["wei_zhangliao","wei_yujin","wei_yuejin"],desc:"全队防御+18%｜开局：削减敌方全体6%生命",eff:{defPct:18},start:{t:"hpCut",p:6}},
+{id:"erqiao",name:"二乔并蒂",heroes:["wu_daqiao","wu_xiaoqiao"],desc:"全队生命+15%｜开局：我军全体攻击+10%（2回合）",eff:{hpPct:15},start:{t:"bufAtk",p:10}},
+{id:"jiangdong",name:"江东基业",heroes:["wu_zhouyu","wu_luxun","wu_sunquan"],desc:"全队攻击+12%、速度+5｜开局：我军全体怒气+15",eff:{atkPct:12,spdFlat:5},start:{t:"enS",n:15}},
+{id:"meiren",name:"美人计",heroes:["qun_diaochan","qun_lvbu"],desc:"吕布攻击+20%｜开局：吕布怒气+60",eff:{atkPct:20,to:"qun_lvbu"},start:{t:"enHero",id:"qun_lvbu",n:60}},
+{id:"yigong",name:"乱世医心",heroes:["qun_huatuo","qun_caiwenji"],desc:"全队治疗效果+25%｜开局：我军全体怒气+10",eff:{healPct:25},start:{t:"enS",n:10}},
+{id:"weiwh",name:"魏武挥鞭",heroes:["wei_cao","wei_guojia","wei_xunyu","wei_zhenji"],desc:"全队速度+8、攻击+10%｜开局：削减敌方全体8%生命",eff:{spdFlat:8,atkPct:10},start:{t:"hpCut",p:8}},
+{id:"huwei",name:"虎卫双雄",heroes:["wei_xuchu","wei_caoren"],desc:"全队防御+12%｜开局：我军全体防御+15%（2回合）",eff:{defPct:12},start:{t:"bufDef",p:15}},
+{id:"zhaolong",name:"常山虎威",heroes:["shu_zhaoyun","shu_weiyan","shu_guanping"],desc:"全队攻击+10%、暴击+10%｜开局：我军全体怒气+20",eff:{atkPct:10,critPct:10},start:{t:"enS",n:20}},
+{id:"shuijun",name:"吴国水师",heroes:["wu_ganning","wu_taishici","wu_huanggai"],desc:"全队暴击+15%｜开局：削减敌方全体6%生命",eff:{critPct:15},start:{t:"hpCut",p:6}},
+{id:"qunxiong",name:"群雄逐鹿",heroes:["qun_dongzhuo","qun_yuanshao","qun_gaoshun"],desc:"全队防御+15%、生命+10%｜开局：我军全体怒气+20",eff:{defPct:15,hpPct:10},start:{t:"enS",n:20}},
+{id:"hongyan",name:"红颜乱世",heroes:["qun_diaochan","wei_zhenji","qun_caiwenji"],desc:"全队生命+12%｜开局：敌方全体怒气-20",eff:{hpPct:12},start:{t:"enE",n:20}}
+];
+const BOND_MAP={}; BONDS.forEach(b=>b.heroes.forEach(hn=>{(BOND_MAP[hn]=BOND_MAP[hn]||[]).push(b);}));
+
+/* ============ 数据：装备 ============ */
+const EQ_SLOTS=[
+{id:"weapon",name:"武器",stat:"攻",desc:"攻击提升"},
+{id:"armor",name:"护甲",stat:"防",desc:"防御提升"},
+{id:"helm",name:"头盔",stat:"血",desc:"生命提升"},
+{id:"boots",name:"战靴",stat:"速",desc:"速度提升"},
+{id:"mount",name:"坐骑",stat:"骑",desc:"攻防双修"}
+];
+const EQ_RAR=[{n:"凡品",c:"#cfcfcf",m:1},{n:"良品",c:"#6fbf4a",m:1.4},{n:"精良",c:"#4a90d9",m:1.9},{n:"珍品",c:"#9b6df0",m:2.6},{n:"极品",c:"#f0a63a",m:3.5},{n:"传说",c:"#ff4a5f",m:4.8}];
+const EQ_NAMES={weapon:["环首刀","点钢枪","落月弓","断魂戟","霜锋剑","赤霄刃"],armor:["玄铁甲","明光铠","锁子甲","鱼鳞甲","黄金甲","龙鳞铠"],helm:["皮胄","铁盔","凤翅盔","紫金冠","白玉盔","帝王冕"],boots:["布靴","皮靴","铁靴","疾风靴","云纹靴","踏雪靴"],mount:["黄鬃马","青骢马","汗血马","的卢马","乌云踏雪","赤兔神驹"]};
+function eqBase(slot,r){ // 基础值
+  const R=[6,10,16,24,34,46],A=[8,12,18,26,36,48],HP=[120,180,260,380,520,700],SP=[2,3,4,6,8,11],MAT=[3,5,8,12,17,24],MDEF=[2,3,4.5,7,10,14];
+  const G=[1,1.4,1.8,2.4,3.0,4.0],GA=[1.5,2,3,4,5.5,7],GHP=[18,26,36,52,70,95],GSP=[.4,.6,.8,1.1,1.5,2],GMAT=[.6,.9,1.2,1.6,2.1,2.8],GMDEF=[.4,.6,.8,1.1,1.4,1.9];
+  if(slot==="weapon")return{atkPct:R[r],g:1};
+  if(slot==="armor")return{defFlat:A[r],g:GA[r]};
+  if(slot==="helm")return{hpFlat:HP[r],g:GHP[r]};
+  if(slot==="boots")return{spdFlat:SP[r],g:GSP[r]};
+  return{atkPct:MAT[r],defPct:MDEF[r],g:1};
+}
+function eqStatAt(slot,r,lv){const b=eqBase(slot,Math.min(5,Math.max(0,r||0)));const out={};for(const k in b){if(k!=="g")out[k]=+(b[k]+b.g*(lv||0)).toFixed(1);}return out;}
+function eqName(slot,r){const rr=Math.min(5,Math.max(0,r||0));return (EQ_NAMES[slot]?EQ_RAR[rr].n+"·"+EQ_NAMES[slot][rr]:"未知装备");}
+function eqWeaponImg(slot,r){if(!["weapon","armor","helm","boots","mount"].includes(slot))return null;const rr=Math.min(5,Math.max(0,r||0));return `assets/${slot}-${rr}.png`;}
+function eqMaxLv(){return 15;}
+
+/* ============ 数据：章节关卡 ============ */
+const CHAPTERS=[
+{id:1,name:"黄巾之乱",sub:"苍天已死，黄天当立",pool:["qun_zhangjiao","qun_panfeng","qun_huaxiong","qun_menghuo","qun_gaoshun","qun_caiwenji"],boss:"qun_zhangjiao"},
+{id:2,name:"董卓进京",sub:"狼子野心，祸乱朝纲",pool:["qun_dongzhuo","qun_diaochan","qun_huaxiong","qun_gaoshun","qun_panfeng","qun_caiwenji"],boss:"qun_dongzhuo"},
+{id:3,name:"虎牢关之战",sub:"三英战吕布，天下震",pool:["qun_lvbu","qun_diaochan","qun_dongzhuo","qun_gaoshun","qun_huaxiong","qun_menghuo"],boss:"qun_lvbu"},
+{id:4,name:"群雄逐鹿",sub:"四世三公，兵起河北",pool:["qun_yuanshao","qun_zhangjiao","qun_diaochan","qun_zuoci","qun_menghuo","qun_panfeng"],boss:"qun_yuanshao"},
+{id:5,name:"官渡之战",sub:"奇袭乌巢，北定中原",pool:["wei_cao","wei_sima","wei_zhangliao","wei_xiahoudun","wei_xuchu","wei_guojia"],boss:"wei_cao"},
+{id:6,name:"赤壁之战",sub:"东风借箭，火烧战船",pool:["wu_zhouyu","wu_luxun","wu_sunquan","wu_ganning","wu_huanggai","wu_daqiao"],boss:"wu_zhouyu"},
+{id:7,name:"荆襄风云",sub:"隆中对策，三顾茅庐",pool:["shu_liubei","shu_guanyu","shu_zhangfei","shu_zhaoyun","shu_weiyan","shu_liaohua"],boss:"shu_guanyu"},
+{id:8,name:"汉中之战",sub:"定军山下，老将逞威",pool:["wei_cao","wei_xiahouyuan","wei_xuchu","shu_zhangfei","shu_weiyan","shu_huangzhong"],boss:"shu_zhangfei"},
+{id:9,name:"樊城之战",sub:"水淹七军，威震华夏",pool:["shu_guanyu","shu_guanping","shu_liaohua","qun_lvbu","wei_sima","wei_xiahoudun"],boss:"shu_guanyu"},
+{id:10,name:"夷陵之战",sub:"火烧连营，白帝托孤",pool:["wu_luxun","wu_sunquan","wu_ganning","wu_daqiao","wu_xiaoqiao","wu_taishici"],boss:"wu_luxun"},
+{id:11,name:"三分归晋",sub:"天下大势，分久必合",pool:["wei_sima","wei_zhangliao","qun_lvbu","shu_zhaoyun","wu_zhouyu","shu_zhugeliang"],boss:"wei_sima"}
+];
+const TOTAL_STAGES=CHAPTERS.length*10;
+function stageIdx(){return (S.chapter-1)*10+S.stage;}
+function stageOf(globalIdx){return {c:Math.min(CHAPTERS.length,Math.floor((globalIdx-1)/10)+1), s:(globalIdx-1)%10+1};}
+function isBossStage(c,s){return s===10;}
+/* ============ 状态与存档 ============ */
+const SAVE_KEY="sanguo_idle_save_v1";
+let S=null;
+function defaultState(){
+  const emptyEq={weapon:null,armor:null,helm:null,boots:null,mount:null};
+  return {
+    v:1, chapter:1, stage:1, clearedMax:0,
+    sweepMax:10, sweepCount:10, sweepAt:Date.now(),
+    gold:50000, expBank:30000, tickets:30,
+    heroes:{
+      shu_liubei:{c:1,lv:8,star:5,eq:{...emptyEq}},
+      shu_zhaoyun:{c:1,lv:7,star:5,eq:{...emptyEq}},
+      qun_zhangjiao:{c:1,lv:7,star:5,eq:{...emptyEq}},
+      wu_daqiao:{c:1,lv:6,star:5,eq:{...emptyEq}},
+      wei_yujin:{c:1,lv:6,star:5,eq:{...emptyEq}},
+      qun_panfeng:{c:1,lv:6,star:5,eq:{...emptyEq}}
+    },
+    formation:["shu_liubei","shu_zhaoyun","qun_zhangjiao","wu_daqiao","wei_yujin","qun_panfeng"],
+    equipInv:{},
+    pity:{sr:0,ssr:0},
+    freeDay:"", sound:true, music:true, seenIntro:false,
+    idleAt:Date.now(),
+    pending:{gold:0,exp:0,tickets:0,eqs:0},
+    stats:{wins:0,loses:0,pulls:0,stagesCleared:0,recruitsByRar:{r:0,sr:0,ssr:0,ur:0}}
+  };
+}
+function saveGame(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(S)); }catch(e){} }
+function loadGame(){ try{ const raw=localStorage.getItem(SAVE_KEY); if(!raw)return false; const d=JSON.parse(raw); S=Object.assign(defaultState(),d); S.pending=Object.assign({gold:0,exp:0,tickets:0,eqs:0},S.pending||{}); if(!S.heroes)S.heroes={}; if(!S.equipInv)S.equipInv={}; if(S.sweepMax===5){ S.sweepMax=10; S.sweepCount=Math.min(10,(S.sweepCount||0)+5); } migrateEqLv(); return true; }catch(e){ return false; } }
+function migrateEqLv(){ if(!S||!S.heroes) return; Object.keys(S.heroes).forEach(hid=>{ const h=S.heroes[hid]; if(!h||!h.eq) return; if(!h.eqLv) h.eqLv={weapon:0,armor:0,helm:0,boots:0,mount:0}; Object.keys(h.eq).forEach(slot=>{ const itid=h.eq[slot]; const it=itid&&S.equipInv&&S.equipInv[itid]; if(it&&it.lv>0){ h.eqLv[slot]=(h.eqLv[slot]||0)+it.lv; it.lv=0; } }); }); }
+function heroData(id){ if(!S.heroes[id]) S.heroes[id]={c:0,lv:1,star:5,eq:{weapon:null,armor:null,helm:null,boots:null,mount:null}}; const h=S.heroes[id]; if(!h.eqLv) h.eqLv={weapon:0,armor:0,helm:0,boots:0,mount:0}; return h; }
+function cleanupFormation(){ S.formation=S.formation.map(id=> (id&&S.heroes[id]&&S.heroes[id].c>0)?id:null); }
+
+/* ============ 属性与羁绊计算 ============ */
+function bondAgg(){
+  const ag={atkPct:0,hpPct:0,defPct:0,spdFlat:0,critPct:0,skPct:0,healPct:0};
+  const ids=S.formation.filter(Boolean);
+  BONDS.forEach(b=>{ if(b.heroes.every(x=>ids.includes(x))){ for(const k in b.eff){ if(k==="to") continue; ag[k]=(ag[k]||0)+b.eff[k]; } } });
+  return ag;
+}
+function activeBonds(){ const ids=S.formation.filter(Boolean); return BONDS.map(b=>({b,on:b.heroes.every(x=>ids.includes(x))})); }
+function calcStats(defId,lv,star,eqMap,eqLv){
+  const def=H[defId], b=BASE_STATS[def.rar], m=ROLE_M[def.role];
+  const lvMult=1+0.06*(lv-1), starMult=Math.pow(1.1,star-5);
+  let atk=b.atk*m.atk*lvMult*starMult, hp=b.hp*m.hp*lvMult*starMult;
+  let defV=b.def*m.def*lvMult*starMult, spd=b.spd*m.spd+(star-5)*1;
+  let atkPct=0,defPct=0,hpPct=0,spdFlat=0,defFlat=0,hpFlat=0;
+  for(const slot in eqMap){ const itid=eqMap[slot]; if(!itid) continue; const it=S.equipInv[itid]; if(!it) continue; const st=eqStatAt(it.slot,it.r,(eqLv&&eqLv[it.slot])||0); atkPct+=st.atkPct||0; defPct+=st.defPct||0; hpPct+=st.hpPct||0; spdFlat+=st.spdFlat||0; defFlat+=st.defFlat||0; hpFlat+=st.hpFlat||0; }
+  return {atk:atk*(1+atkPct/100), hp:hp*(1+hpPct/100)+hpFlat, def:defV*(1+defPct/100)+defFlat, spd:spd+spdFlat};
+}
+function unitPower(defId,lv,star,eqMap,eqLv){ const st=calcStats(defId,lv,star,eqMap,eqLv); return Math.round(st.atk*3+st.hp*.35+st.def*7+st.spd*6); }
+function getTeamPower(){ return S.formation.filter(Boolean).reduce((s,id)=>s+unitPower(id,S.heroes[id].lv,S.heroes[id].star,S.heroes[id].eq,S.heroes[id].eqLv),0); }
+
+/* ============ 战斗引擎 ============ */
+function makeFightUnit(defId,lv,star,eqMap,side,idx,enemyMult,ag,eqLv){
+  const def=H[defId], st=calcStats(defId,lv,star,eqMap,eqLv);
+  ag=ag||bondAgg();
+  let atk=st.atk*(1+ag.atkPct/100), hp=st.hp*(1+ag.hpPct/100), defV=st.def*(1+ag.defPct/100), spd=st.spd+ag.spdFlat;
+  activeBonds().forEach(x=>{ if(x.on && x.b.eff.to===defId){ atk*=1+(x.b.eff.atkPct||0)/100; } });
+  if(enemyMult){ atk*=enemyMult; hp*=enemyMult; defV*=enemyMult; spd*=enemyMult; }
+  return {defId,side,idx,name:def.name,lv,star,atk,hp,def:defV,spd,maxHp:Math.round(hp),energy:0,skFlip:0,ultCast:0,skillIdx:0,
+    buffs:{atk:0,def:0,atkR:0,defR:0},stun:0,crit:10+(ag.critPct||0),healPct:100+(ag.healPct||0),skPct:100+(ag.skPct||0),alive:true};
+}
+function makePlayerUnits(){ return S.formation.map((id,i)=> id? makeFightUnit(id,S.heroes[id].lv,S.heroes[id].star,S.heroes[id].eq,"p",i,0,bondAgg(),S.heroes[id].eqLv):null).filter(Boolean); }
+function genEnemy(c,s){
+  const ch=CHAPTERS[c-1], isBoss=s===10;
+  let pool=ch.pool.slice(); pool.sort(()=>Math.random()-.5);
+  let picks=pool.slice(0,6);
+  if(isBoss && !picks.includes(ch.boss)){ picks[Math.floor(Math.random()*6)]=ch.boss; }
+  const lv=3+(c-1)*3+s;
+  const mult=1+(c-1)*.42+(s-1)*.03;
+  const bm=isBoss?1.3:1;
+  return picks.map((id,i)=>makeFightUnit(id,lv,5,{weapon:null,armor:null,helm:null,boots:null,mount:null},"e",i,mult*bm,{atkPct:0,hpPct:0,defPct:0,spdFlat:0,critPct:0,skPct:0,healPct:0}));
+}
+function lowestHp(list){ return list.filter(u=>u.alive).sort((a,b)=>a.hp-b.hp)[0]; }
+function secondLowest(list){ const a=list.filter(u=>u.alive).sort((x,y)=>x.hp-y.hp); return a[1]||a[0]; }
+function tankTarget(list){
+  const alive=list.filter(u=>u.alive);
+  if(!alive.length) return undefined;
+  const tanks=alive.filter(u=>H[u.defId]&&H[u.defId].role==="tank");
+  if(tanks.length) return tanks.sort((a,b)=>a.hp-b.hp)[0];
+  return alive.sort((a,b)=>b.hp-a.hp)[0];
+}
+function hitTarget(src,tgt,mult,critAdd){
+  let d=src.atk*(1+src.buffs.atk/100)*mult - tgt.def*(1+tgt.buffs.def/100)*.45;
+  let crit=false; if(Math.random()*100 < src.crit+(critAdd||0)){ d*=1.5; crit=true; }
+  d=Math.max(1,Math.round(d)); tgt.hp-=d; const died=tgt.hp<=0;
+  if(died){ tgt.hp=0; tgt.alive=false; }
+  else{ tgt.energy=Math.min(100,tgt.energy+20); }
+  return {d,crit,died};
+}
+function actSkill(u,ev,sk){
+  sk=sk||H[u.defId].sk;
+  const enemies=u.side==="p"? ENEMY_CACHE:PLAYER_CACHE;
+  const allies=u.side==="p"? PLAYER_CACHE:ENEMY_CACHE;
+  const steps= sk.t==="combo"? sk.x.steps:[{t:sk.t,p:sk.p,stunC:sk.x.stunC,crit:sk.x.crit}];
+  const d0=H[u.defId]; const skSlot = sk===d0.skU?"skU": (d0.sk2&&sk===d0.sk2)?"sk2": (sk===d0.sk?"sk":"");
+  const banner={t:"banner",u,sk:sk.n,slot:skSlot};
+  ev.push(banner);
+  let sumDmg=0, healAmt=0;
+  steps.forEach(st=>{
+    const p=st.p/100*(u.skPct/100);
+    if(st.t==="dmg"){ const t=tankTarget(enemies); if(!t)return; const r=hitTarget(u,t,p,st.crit); sumDmg+=r.d; ev.push({t:"skHit",u,targets:[{side:t.side,idx:t.idx,d:r.d,crit:r.crit}]}); if(r.died)ev.push({t:"die",u:t}); if(r.crit)ev.push({t:"crit",u}); }
+    else if(st.t==="dmgLow"){ const t=lowestHp(enemies); if(!t)return; const r=hitTarget(u,t,p,st.crit); sumDmg+=r.d; ev.push({t:"skHit",u,targets:[{side:t.side,idx:t.idx,d:r.d,crit:r.crit}]}); if(r.died)ev.push({t:"die",u:t}); if(r.crit)ev.push({t:"crit",u}); }
+    else if(st.t==="dmgAll"){ const ts=[]; enemies.filter(e=>e.alive).forEach(t=>{ const r=hitTarget(u,t,p,st.crit); sumDmg+=r.d; ts.push({side:t.side,idx:t.idx,d:r.d,crit:r.crit}); if(r.died)ev.push({t:"die",u:t}); if(r.crit)ev.push({t:"crit",u}); }); if(ts.length)ev.push({t:"skHit",u,targets:ts,aoe:true}); }
+    else if(st.t==="dmg2"){ let t=tankTarget(enemies); if(!t)return; for(let k=0;k<2;k++){ if(!t.alive)t=tankTarget(enemies); if(!t)break; const r=hitTarget(u,t,p,st.crit); sumDmg+=r.d; ev.push({t:"skHit",u,targets:[{side:t.side,idx:t.idx,d:r.d,crit:r.crit}]}); if(r.died)ev.push({t:"die",u:t}); if(r.crit)ev.push({t:"crit",u}); } }
+    else if(st.t==="stun"){ const t=tankTarget(enemies); if(!t)return; const r=hitTarget(u,t,p,st.crit); sumDmg+=r.d; ev.push({t:"skHit",u,targets:[{side:t.side,idx:t.idx,d:r.d,crit:r.crit}]}); if(r.died)ev.push({t:"die",u:t}); if(Math.random()*100<st.stunC&&t.alive){ t.stun=1; ev.push({t:"stunned",u:t}); } }
+    else if(st.t==="stunAll"){ const ts=[]; enemies.filter(e=>e.alive).forEach(t=>{ const r=hitTarget(u,t,p,st.crit); sumDmg+=r.d; ts.push({side:t.side,idx:t.idx,d:r.d,crit:r.crit}); if(r.died)ev.push({t:"die",u:t}); if(t.alive&&Math.random()*100<st.stunC){ t.stun=1; ev.push({t:"stunned",u:t}); } }); if(ts.length)ev.push({t:"skHit",u,targets:ts,aoe:true}); }
+    else if(st.t==="healLow"){ const t=lowestHp(allies); if(!t)return; const h=Math.round(u.atk*p*u.healPct/100); t.hp=Math.min(t.maxHp,t.hp+h); healAmt+=h; ev.push({t:"skHeal",u,targets:[{side:t.side,idx:t.idx,h}]}); }
+    else if(st.t==="healLow2"){ const t=secondLowest(allies); if(!t)return; const h=Math.round(u.atk*p*u.healPct/100); t.hp=Math.min(t.maxHp,t.hp+h); healAmt+=h; ev.push({t:"skHeal",u,targets:[{side:t.side,idx:t.idx,h}]}); }
+    else if(st.t==="healAll"){ const ts=[]; allies.filter(a=>a.alive).forEach(t=>{ const h=Math.round(u.atk*p*u.healPct/100); t.hp=Math.min(t.maxHp,t.hp+h); healAmt+=h; ts.push({side:t.side,idx:t.idx,h}); }); if(ts.length)ev.push({t:"skHeal",u,targets:ts}); }
+    else if(st.t==="healSelf"){ const h=Math.round(u.atk*p*u.healPct/100); u.hp=Math.min(u.maxHp,u.hp+h); healAmt+=h; ev.push({t:"skHeal",u,targets:[{side:u.side,idx:u.idx,h}]}); }
+    else if(st.t==="buffAtk"){ const ts=[]; allies.filter(a=>a.alive).forEach(a=>{ a.buffs.atk=st.p; a.buffs.atkR=2; ts.push({side:a.side,idx:a.idx}); }); if(ts.length)ev.push({t:"skBuff",u,targets:ts,kind:"atk"}); }
+    else if(st.t==="buffDef"){ const ts=[]; allies.filter(a=>a.alive).forEach(a=>{ a.buffs.def=st.p; a.buffs.defR=2; ts.push({side:a.side,idx:a.idx}); }); if(ts.length)ev.push({t:"skBuff",u,targets:ts,kind:"def"}); }
+    else if(st.t==="buffDefSelf"){ u.buffs.def=st.p; u.buffs.defR=2; ev.push({t:"skBuff",u,targets:[{side:u.side,idx:u.idx}],kind:"def"}); }
+    else if(st.t==="spdSelf"){ u.spd=u.spd*(1+st.p/100); ev.push({t:"skBuff",u,targets:[{side:u.side,idx:u.idx}],kind:"spd"}); }
+  });
+  const txt= u.name+"施展【"+sk.n+"】"+(sumDmg? "，造成"+sumDmg+"伤害":"")+(healAmt? "，治疗"+healAmt+"生命":"");
+  ev.push({t:"skillText",u,text:txt});
+}
+function actBasic(u,ev){
+  const enemies=u.side==="p"? ENEMY_CACHE:PLAYER_CACHE;
+  const t=tankTarget(enemies); if(!t)return;
+  const r=hitTarget(u,t,1,0);
+  ev.push({t:"atk",u,target:t,d:r.d,text:u.name+"攻击"+t.name+"，造成"+r.d+"伤害"});
+  if(r.died)ev.push({t:"die",u:t});
+}
+let PLAYER_CACHE=[],ENEMY_CACHE=[];
+function applyBondStart(p,e){
+  const ev=[];
+  const ids=S.formation.filter(Boolean);
+  const act=BONDS.filter(b=>b.start&&b.heroes.every(hn=>ids.includes(hn)));
+  if(!act.length) return ev;
+  const att=p[0];
+  act.forEach(b=>{
+    ev.push({t:"banner",u:att,sk:b.name,slot:"bond",bond:b.id});
+    const st=b.start;
+    if(st.t==="hpCut"){
+      const ts=[]; e.filter(u=>u.alive).forEach(u=>{ const d=Math.max(1,Math.round(u.maxHp*st.p/100)); u.hp=Math.max(0,u.hp-d); if(u.hp<=0){u.hp=0;u.alive=false;} ts.push({side:u.side,idx:u.idx,d,noGain:true}); });
+      if(ts.length) ev.push({t:"skHit",u:att,aoe:true,targets:ts,text:b.name+"：开局削减敌方全体"+st.p+"%生命！"});
+    }else if(st.t==="heal"){
+      const ts=[]; p.filter(u=>u.alive).forEach(u=>{ const h=Math.max(1,Math.round(u.maxHp*st.p/100)); u.hp=Math.min(u.maxHp,u.hp+h); ts.push({side:u.side,idx:u.idx,h}); });
+      if(ts.length) ev.push({t:"skHeal",u:att,targets:ts,text:b.name+"：开局我军回复"+st.p+"%生命！"});
+    }else if(st.t==="enS"){
+      p.forEach(u=>{ if(u.alive) u.energy=Math.min(100,u.energy+st.n); });
+      ev.push({t:"skillText",u:att,text:b.name+"：开局我军战意高涨，全体怒气+"+st.n+"！"});
+    }else if(st.t==="enHero"){
+      const tgt=p.find(u=>u.defId===st.id&&u.alive);
+      if(tgt){ tgt.energy=Math.min(100,tgt.energy+st.n); ev.push({t:"skillText",u:att,text:b.name+"：开局"+tgt.name+"战意勃发，怒气+"+st.n+"！"}); }
+    }else if(st.t==="enE"){
+      e.forEach(u=>{ if(u.alive) u.energy=Math.max(0,u.energy-st.n); });
+      ev.push({t:"skillText",u:att,text:b.name+"：开局敌军军心受挫，全体怒气-"+st.n+"！"});
+    }else if(st.t==="bufDef"){
+      const ts=[]; p.filter(u=>u.alive).forEach(u=>{ u.buffs.def=st.p; u.buffs.defR=2; ts.push({side:u.side,idx:u.idx}); });
+      if(ts.length) ev.push({t:"skBuff",u:att,targets:ts,kind:"def",text:b.name+"：开局我军据守，防御提升！"});
+    }else if(st.t==="bufAtk"){
+      const ts=[]; p.filter(u=>u.alive).forEach(u=>{ u.buffs.atk=st.p; u.buffs.atkR=2; ts.push({side:u.side,idx:u.idx}); });
+      if(ts.length) ev.push({t:"skBuff",u:att,targets:ts,kind:"atk",text:b.name+"：开局我军士气如虹，攻击提升！"});
+    }
+  });
+  return ev;
+}
+function battleResolve(pUnits,eUnits){
+  PLAYER_CACHE=pUnits; ENEMY_CACHE=eUnits;
+  const ev=[]; let rounds=0;
+  const all=()=>PLAYER_CACHE.filter(u=>u.alive).concat(ENEMY_CACHE.filter(u=>u.alive));
+  while(rounds<40 && PLAYER_CACHE.some(u=>u.alive) && ENEMY_CACHE.some(u=>u.alive)){
+    rounds++;
+    all().forEach(u=>{ if(u.buffs.atkR>0){u.buffs.atkR--; if(u.buffs.atkR<=0)u.buffs.atk=0;} if(u.buffs.defR>0){u.buffs.defR--; if(u.buffs.defR<=0)u.buffs.def=0;} });
+    const order=all().sort((a,b)=>b.spd-a.spd);
+    for(const u of order){
+      if(!u.alive) continue;
+      if(u.stun>0){ u.stun--; ev.push({t:"stunText",u,text:u.name+"被眩晕，无法行动"}); continue; }
+      u.energy+=35;
+      if(u.energy>=100){
+        u.energy=0;
+        const def=H[u.defId];
+        const has2=!!def.sk2 && u.star>=6;
+        const seq=[];
+        if(u.star>=7 && def.skU) seq.push(def.skU);
+        if(has2) seq.push(def.sk2);
+        seq.push(def.sk);
+        let sk=seq[(u.skillIdx=(u.skillIdx||0))%seq.length]; u.skillIdx++;
+        if(sk===def.skU) u.ultCast++;
+        actSkill(u,ev,sk);
+      } else actBasic(u,ev);
+      if(!PLAYER_CACHE.some(x=>x.alive) || !ENEMY_CACHE.some(x=>x.alive)) break;
+    }
+  }
+  const pAlive=PLAYER_CACHE.some(u=>u.alive), eAlive=ENEMY_CACHE.some(u=>u.alive);
+  let win;
+  if(eAlive && !pAlive) win=false;
+  else if(pAlive && !eAlive) win=true;
+  else{ // 打满回合：比较双方剩余生命占比
+    const pr=PLAYER_CACHE.reduce((s,u)=>s+u.hp/u.maxHp,0), er=ENEMY_CACHE.reduce((s,u)=>s+u.hp/u.maxHp,0);
+    win=pr>=er;
+  }
+  return {win,rounds,ev};
+}
+function calcBattleStats(ev,units){
+  const m={}; units.forEach(u=>m[u.side+u.idx]={defId:u.defId,name:u.name,dmg:0,taken:0,heal:0});
+  const key=u=>u.side+u.idx;
+  ev.forEach(e=>{
+    if(e.t==="atk"&&e.d!=null){ if(m[key(e.u)])m[key(e.u)].dmg+=e.d; if(e.target&&m[key(e.target)])m[key(e.target)].taken+=e.d; }
+    else if(e.t==="skHit"&&e.targets){ const src=m[key(e.u)]; if(src) e.targets.forEach(t=>{ if(t.d!=null){ src.dmg+=t.d; const k=t.side+t.idx; if(m[k])m[k].taken+=t.d; } }); }
+    else if(e.t==="skHeal"&&e.targets){ const src=m[key(e.u)]; if(src) e.targets.forEach(t=>{ if(t.h!=null) src.heal+=t.h; }); }
+  });
+  return m;
+}
+function statTop(m,key){ const arr=Object.values(m).filter(x=>x[key]>0).sort((a,b)=>b[key]-a[key]); return arr[0]||null; }
+
+/* ============ 关卡奖励与挂机 ============ */
+function stageRewards(c,s){
+  const idx=(c-1)*10+s;
+  const gold=Math.round(60+idx*40), exp=Math.round(40+idx*25);
+  const ticketCh=Math.min(40,6+idx*.25);
+  const eqCh=25;
+  return {gold,exp,ticketCh,eqCh};
+}
+function rollEquip(c){
+  const w=(c<=2)?[80,16,4,0,0,0]:(c<=4)?[55,30,13,2,0,0]:(c<=6)?[30,38,24,8,0,0]:(c<=8)?[14,30,34,18,4,0]:(c<=10)?[4,16,30,32,16,2]:[0,8,20,34,30,8];
+  let r=0,roll=Math.random()*100; for(let i=0;i<6;i++){ if(roll<w[i]){r=i;break;} roll-=w[i]; }
+  const slots=["weapon","armor","helm","boots","mount"];
+  const slot=slots[Math.floor(Math.random()*5)];
+  const id=uid(); S.equipInv[id]={id,slot,r,lv:0}; return id;
+}
+function applyStageRewards(c,s,isSweep){
+  const rw=stageRewards(c,s);
+  S.gold+=rw.gold; S.expBank+=rw.exp;
+  const gained=[];
+  if(Math.random()*100<rw.ticketCh){ S.tickets+=1; gained.push("招募令×1"); }
+  if(Math.random()*100<rw.eqCh){ const id=rollEquip(c); gained.push(eqName(S.equipInv[id].slot,S.equipInv[id].r)+"×1"); }
+  return {gold:rw.gold,exp:rw.exp,gained};
+}
+function advanceStage(){
+  if(S.stage<10){ S.stage++; return; }
+  if(S.chapter<CHAPTERS.length){ S.chapter++; S.stage=1; return; }
+}
+function idleRate(){ const idx=stageIdx(); return {gold:80+idx*50, exp:60+idx*32, ticket:0.4+idx*.03, eq:0.8+idx*.08}; }
+function idleTick(){ const r=idleRate(); const mins=5/60; S.pending.gold+=r.gold*mins; S.pending.exp+=r.exp*mins; S.pending.tickets+=r.ticket*mins; S.pending.eqs+=r.eq*mins; }
+function collectIdle(){
+  const p=S.pending;
+  const gold=Math.floor(p.gold), exp=Math.floor(p.exp), t=Math.floor(p.tickets), eq=Math.floor(p.eqs);
+  if(gold+exp+t+eq===0){ toast("暂无挂机收益，先去闯关吧","err"); return; }
+  S.gold+=gold; S.expBank+=exp; S.tickets+=t;
+  const drops=[];
+  for(let i=0;i<eq;i++){ const id=rollEquip(S.chapter); drops.push(eqName(S.equipInv[id].slot,S.equipInv[id].r)); }
+  p.gold%=1;p.exp%=1;p.tickets%=1;p.eqs%=1;
+  S.idleAt=Date.now();
+  const msg="挂机收益：金币+"+fmt(gold)+" 经验+"+fmt(exp)+(t?" 招募令+"+t:"")+(drops.length? " 装备×"+drops.length:"");
+  toast(msg,"ok");
+  sfx("win");
+  saveGame(); renderAll();
+}
+function calcOffline(){
+  const ms=Date.now()-S.idleAt; if(ms<60000) return null;
+  const mins=Math.min(720,ms/60000); const r=idleRate();
+  const gold=Math.floor(r.gold*mins), exp=Math.floor(r.exp*mins), t=Math.floor(r.ticket*mins), eq=Math.floor(r.eq*mins);
+  S.gold+=gold; S.expBank+=exp; S.tickets+=t;
+  for(let i=0;i<eq;i++) rollEquip(S.chapter);
+  S.idleAt=Date.now();
+  return {gold,exp,t,eq,mins};
+}
+
+/* ============ 招募 ============ */
+const PULL_ODDS=[{r:"r",p:58},{r:"sr",p:30},{r:"ssr",p:10.5},{r:"ur",p:1.5}];
+function pullOnce(){
+  S.pity.sr++; S.pity.ssr++;
+  let forced=null;
+  if(S.pity.ssr>=40){ forced="ssr"; S.pity.sr=0; S.pity.ssr=0; }
+  else if(S.pity.sr>=10){ forced="sr"; S.pity.sr=0; }
+  let pick;
+  if(forced){ pick=forced; }
+  else{ let roll=Math.random()*100; for(const o of PULL_ODDS){ if(roll<o.p){ pick=o.r; break; } roll-=o.p; } }
+  const pool=HERO_IDS.filter(id=>H[id].rar===pick);
+  const heroId=pool[Math.floor(Math.random()*pool.length)];
+  heroData(heroId).c++; const isNew=heroData(heroId).c===1;
+  S.stats.pulls++;
+  S.stats.recruitsByRar[pick]++;
+  if(pick==="sr"||pick==="ssr"||pick==="ur"){ S.pity.sr=0; }
+  if(pick==="ssr"||pick==="ur"){ S.pity.ssr=0; }
+  return {heroId,pick,new:isNew};
+}
+function recruit(n){
+  if(S.tickets<n){ toast("招募令不足","err"); return null; }
+  S.tickets-=n;
+  const out=[]; for(let i=0;i<n;i++) out.push(pullOnce());
+  return out;
+}
+function freePullAvailable(){ const d=new Date(); const k=d.getFullYear()+"-"+d.getMonth()+"-"+d.getDate(); return S.freeDay!==k; }
+
+/* ============ 养成 ============ */
+function expNeed(lv){ return Math.round(50*Math.pow(lv,1.4)); }
+function levelUpCost(lv){ return Math.round(expNeed(lv)*.2); }
+function levelUp(id,n){ const h=heroData(id); let done=0;
+  for(let i=0;i<n;i++){ if(h.lv>=100)break; const ne=expNeed(h.lv), gc=levelUpCost(h.lv); if(S.expBank<ne||S.gold<gc)break; S.expBank-=ne; S.gold-=gc; h.lv++; done++; }
+  return done; }
+function starUp(id){ const h=heroData(id); if(h.star>=9){ toast("已满星","err"); return false; }
+  if(h.c<3){ toast("需要同名武将×3（含本体）","err"); return false; }
+  const gold=500*Math.pow(h.star-4,2); if(S.gold<gold){ toast("金币不足","err"); return false; }
+  S.gold-=gold; h.c-=2; h.star++;
+  cleanupFormation(); saveGame(); return true; }
+function upgradeEq(heroId,slot){ const h=heroData(heroId); const lv=(h.eqLv&&h.eqLv[slot])||0; if(lv>=eqMaxLv()){ toast("该部位已强化满级","err"); return false; }
+  const itid=h.eq[slot]; const it=itid?S.equipInv[itid]:null;
+  const cost=Math.round(Math.pow(lv+1,2)*25*EQ_RAR[Math.min(5,Math.max(0,(it&&it.r)||0))].m); if(S.gold<cost){ toast("金币不足","err"); return false; }
+  S.gold-=cost; h.eqLv[slot]=lv+1; return true; }
+function resetHero(id){
+  const h=heroData(id);
+  let expBack=0, goldBack=0;
+  for(let lv=1; lv<h.lv; lv++){ expBack+=expNeed(lv); goldBack+=levelUpCost(lv); }
+  h.lv=1;
+  ["weapon","armor","helm","boots","mount"].forEach(slot=>{
+    const L=(h.eqLv&&h.eqLv[slot])||0;
+    if(L<=0) return;
+    const itid=h.eq[slot]; const it=itid?S.equipInv[itid]:null;
+    const q=Math.min(5,Math.max(0,(it&&it.r)||0));
+    for(let k=0;k<L;k++){ goldBack+=Math.round(Math.pow(k+1,2)*25*EQ_RAR[q].m); }
+    h.eqLv[slot]=0;
+  });
+  S.expBank+=expBack; S.gold+=goldBack;
+  cleanupFormation(); saveGame();
+  return {expBack,goldBack};
+}
+function equipItem(heroId,slot,itemId){ const it=S.equipInv[itemId]; if(!it)return false; if(it.slot!==slot){ toast("装备类型不符","err"); return false; }
+  if(it.onHero && it.onHero!==heroId){ toast("该装备已被其他武将穿戴","err"); return false; }
+  const h=heroData(heroId); if(h.eq[slot]){ S.equipInv[h.eq[slot]].onHero=null; } if(it.onHero){ heroData(it.onHero).eq[slot]=null; }
+  h.eq[slot]=itemId; it.onHero=heroId; return true; }
+function unequip(heroId,slot){ const h=heroData(heroId); const it=S.equipInv[h.eq[slot]]; if(!it)return; it.onHero=null; h.eq[slot]=null; }
+function autoEquip(heroId){
+  const h=heroData(heroId);
+  let n=0;
+  EQ_SLOTS.forEach(s=>{
+    let best=null;
+    for(const k in S.equipInv){
+      const it=S.equipInv[k];
+      if(!it||it.slot!==s.id||it.onHero) continue;
+      if(!best||it.r>best.r||(it.r===best.r&&it.lv>best.lv)) best=it;
+    }
+    if(best&&h.eq[s.id]!==best.id){ if(equipItem(heroId,s.id,best.id)) n++; }
+  });
+  saveGame(); return n;
+}
+function unequipAll(heroId){
+  const h=heroData(heroId);
+  let n=0;
+  EQ_SLOTS.forEach(s=>{ if(h.eq[s.id]){ unequip(heroId,s.id); n++; } });
+  saveGame(); return n;
+}
+/* ============ 视图工具 ============ */
+const NAV=[
+ {id:"home",n:"主页",icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10.5 12 3l9 7.5V21h-6v-6h-6v6H3z"/></svg>'},
+ {id:"battle",n:"推图",icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3v18M18 3v18M6 7h12M6 12h12M6 17h12M6 3l3 3M6 21l3-3M18 3l-3 3M18 21l-3-3"/></svg>'},
+ {id:"heroes",n:"武将",icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>'},
+ {id:"formation",n:"阵容",icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>'},
+ {id:"gear",n:"整备",icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14.7 6.3a4.5 4.5 0 0 0-6.1 5.5L3 17.4V21h3.6l5.6-5.6a4.5 4.5 0 0 0 5.5-6.1l-2.8 2.8-2.5-.7-.7-2.5z"/></svg>'},
+ {id:"recruit",n:"招募",icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l2.4 5.6L20 9l-4.6 3.4L17 19l-5-3.4L7 19l1.6-6.6L4 9l5.6-1.4z"/></svg>'}
+];
+function renderNav(){
+ $("#nav").innerHTML=NAV.map(n=>`<button class="nav-item ${cur==="#/"+n.id?'active':''}" data-nav="${n.id}">${n.icon}<span>${n.n}</span></button>`).join("");
+ $$("#nav .nav-item").forEach(b=>b.onclick=()=>{ sfx("click"); location.hash="#/"+b.dataset.nav; });
+}
+function renderTopbar(){
+ const idx=stageIdx(), ch=CHAPTERS[S.chapter-1];
+ $("#topbar").innerHTML=`
+  <div class="brand"><svg class="seal" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="#241e15"/><rect x="4" y="4" width="24" height="24" rx="4" fill="none" stroke="#c9a24b" stroke-width="1.6"/><text x="16" y="22.5" font-size="16" font-weight="900" text-anchor="middle" fill="#e8c87a" font-family="serif">三</text></svg>三国放置</div>
+  <div class="res-row">
+    <span class="res-item res-power" title="总战力">${ico('sword')}<b>${fmt(getTeamPower())}</b></span>
+    <span class="res-item res-gold" title="金币">${ico('coin')}<b>${fmt(S.gold)}</b></span>
+    <span class="res-item" title="武将经验">${ico('exp')}<b>${fmt(S.expBank)}</b></span>
+    <span class="res-item" title="招募令">${ico('ticket')}<b>${S.tickets}</b></span>
+    <span class="res-item" title="当前关卡">${ico('flag')}<b>${ch.name} ${S.stage}/10</b></span>
+  </div>
+  <div class="tb-actions">
+    <button class="tb-btn ${S.music?'on':'off'}" data-act="music" title="${S.music?'点击关闭背景音乐':'点击开启背景音乐'}">${ico('music')}</button>
+    <button class="tb-btn" data-act="settings" title="设置">${ico('gear')}</button>
+  </div>`;
+}
+function ico(k){ const s={
+ sword:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff8a5c" stroke-width="2"><path d="M14 4l6 6-2 2-6-6zM12 6l6 6-8 8-6-6z"/></svg>',
+ coin:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffd98a" stroke-width="2"><circle cx="12" cy="12" r="9"/><rect x="9.5" y="6.5" width="5" height="5" fill="#ffd98a" stroke="none"/><rect x="9.5" y="12.5" width="5" height="5" fill="none" stroke="#ffd98a" stroke-width="1"/></svg>',
+ exp:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9bceff" stroke-width="2"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/></svg>',
+ ticket:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e8c87a" stroke-width="2"><path d="M3 8V5h18v3c-2 0-2 1.5-2 4s0 4 2 4v3H3v-3c2 0 2-1.5 2-4S5 8 3 8z"/><path d="M13 8v8"/></svg>',
+ flag:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7fe89a" stroke-width="2"><path d="M5 21V4l14 5-14 5"/></svg>',
+ music:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
+ gear:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"/><path d="M1.5 14h5M9.5 8h5M17.5 16h5"/></svg>'
+ }; return s[k]||""; }
+function renderAll(){ renderTopbar(); renderNav(); renderCurrent(); }
+let cur="#/home";
+function renderCurrent(){
+  if(cur!=="#/battle") document.body.classList.remove("in-battle");
+  if(cur!=="#/battle" && BATTLE.phase==="running"){ clearTimeout(BATTLE.timer); BATTLE.phase="idle"; }
+  const v=$("#view");
+  if(cur==="#/home") v.innerHTML=viewHome();
+  else if(cur==="#/battle") v.innerHTML=viewBattle();
+  else if(cur==="#/heroes") v.innerHTML=viewHeroes();
+  else if(cur==="#/formation") v.innerHTML=viewFormation();
+  else if(cur==="#/gear") v.innerHTML=viewMaintain();
+  else if(cur==="#/recruit") v.innerHTML=viewRecruit();
+  else if(cur==="#/codex") v.innerHTML=viewCodex();
+  else if(cur==="#/settings") v.innerHTML=viewSettings();
+  else v.innerHTML=viewHome();
+  bindView();
+}
+/* ============ 2.5D 立绘 ============ */
+const PORTRAIT={shu_liubei:0,shu_zhaoyun:1,qun_zhangjiao:2,wu_daqiao:3,wei_yujin:4,qun_panfeng:5,
+ wei_cao:6,wei_sima:7,wei_zhangliao:8,wei_xiahoudun:9,wei_guojia:10,wei_xuchu:11,
+ wei_zhenji:12,wei_xunyu:13,wei_xiahouyuan:14,wei_caoren:15,wei_yuejin:16,shu_zhugeliang:17,
+ shu_guanyu:18,shu_zhangfei:19,shu_machao:20,shu_huangzhong:21,shu_pangtong:22,shu_weiyan:23,
+ shu_fazheng:24,shu_liaohua:25,shu_guanping:26,wu_zhouyu:27,wu_sunquan:28,wu_luxun:29,
+ wu_sunshangxiang:30,wu_taishici:31,wu_ganning:32,wu_xiaoqiao:33,wu_huanggai:34,wu_lusu:35,
+ wu_dingfeng:36,wu_zhuran:37,qun_lvbu:38,qun_diaochan:39,qun_huatuo:40,qun_dongzhuo:41,
+ qun_yuanshao:42,qun_zuoci:43,qun_gaoshun:44,qun_caiwenji:45,qun_menghuo:46,qun_huaxiong:47};
+function portraitHtml(id,cls){ const i=PORTRAIT[id]; return i!==undefined? `<div class="portrait s${Math.floor(i/6)} p${i%6} ${cls||""}"></div>`:null; }
+function heroCard(id,opts){
+  const h=H[id], own=S.heroes[id], o=opts||{};
+  const owned=own&&own.c>0;
+  const st=owned?calcStats(id,own.lv,own.star,own.eq,own.eqLv):null;
+  const power=owned?unitPower(id,own.lv,own.star,own.eq,own.eqLv):null;
+  return `<div class="hero-card fac-${h.fac} r-${h.rar} ${owned?'owned':''}" data-hero="${id}">
+    <span class="h-flag"></span><span class="h-rarity"></span><span class="h-fac">${FAC[h.fac].n}</span>
+    <div class="h-water">${FAC[h.fac].n}</div>
+    ${portraitHtml(id,"c-portrait"+(owned?"":" gs")) || `<div class="h-med">${esc(h.glyph)}</div>`}
+    <div class="h-name">${esc(h.name)}</div>
+    <div class="h-stars">${"★".repeat(owned?own.star:0)}<span style="opacity:.25">${"★".repeat(owned?9-own.star:0)}</span></div>
+    <div class="h-meta"><span class="chip chip-${h.role}">${ROLES[h.role]}</span><span style="color:var(--rarc)">${RAR[h.rar].n}</span></div>
+    ${owned?`<div class="h-power">战力 ${fmt(power)} · Lv.${own.lv}${o.showCount?` ×${own.c}`:""}</div>`:`<div class="h-meta">未获得</div>`}
+  </div>`;
+}
+function bindView(){
+ $$("#view [data-hero]").forEach(el=>el.onclick=()=>{ sfx("click"); openHeroModal(el.dataset.hero); });
+ $$("#view [data-nav]").forEach(el=>el.onclick=()=>{ sfx("click"); location.hash="#/"+el.dataset.nav; });
+ $$("#view .btn").forEach(b=>{ if(!b.dataset.act){ if(!b.onclick){ b.onclick=()=>toast("功能开发中","err"); } } });
+ $$("#view [data-mop]").forEach(b=>b.onclick=()=>{
+   const hid=b.dataset.hero, m=b.dataset.mop;
+   if(m==="lv"||m==="lv10"||m==="lvmax"){ const d=levelUp(hid,m==="lvmax"?99:(m==="lv10"?10:1)); if(d>0){ toast("等级提升 +"+d,"ok"); sfx("click"); saveGame(); renderAll(); } else toast("经验或金币不足","err"); }
+   else if(m==="eq") openEquipModal(hid,b.dataset.slot);
+   else if(m==="detail") openHeroModal(hid);
+ });
+}
+function modal(html){
+ $("#modal-root").innerHTML=`<div class="m-veil"></div><div class="modal">${html}</div>`;
+ $("#modal-root").classList.add("open");
+ const veil=$("#modal-root .m-veil");
+ veil.addEventListener("click",veilClick);
+}
+function veilClick(e){
+  const x=e.clientX||0, y=e.clientY||0;
+  closeModal();
+  const el=document.elementFromPoint(x,y);
+  if(el && !el.closest("#modal-root")){
+    el.dispatchEvent(new MouseEvent("click",{bubbles:true,cancelable:true,clientX:x,clientY:y,view:window}));
+  }
+}
+function closeModal(){ $("#modal-root").classList.remove("open"); $("#modal-root").innerHTML=""; }
+
+/* ============ 主页 ============ */
+function viewHome(){
+  const p=S.pending;
+  const idleHas=Math.floor(p.gold)+Math.floor(p.exp)+Math.floor(p.tickets)+Math.floor(p.eqs)>0;
+  const ch=CHAPTERS[S.chapter-1];
+  const ab=activeBonds();
+  const onBonds=ab.filter(x=>x.on);
+  return `
+  <div class="view-wrap">
+    <div id="home-hero">
+      <div class="bgimg bg-main"></div>
+      <div class="veil"></div>
+      <div class="home-hero-body">
+        <div class="home-title">三国放置 · 群雄逐鹿</div>
+        <div class="home-sub">挂机闯关 · 四阵营武将 · 羁绊与神装 · 自动推图</div>
+        <div class="home-hero-cta">
+          <button class="btn btn-gold" data-act="battle">继续闯关 <small>${ch.name} ${S.stage}/10</small></button>
+          <button class="btn btn-red" data-act="recruit">招募武将</button>
+          <button class="btn btn-ghost" data-act="formation">调整阵容</button>
+        </div>
+      </div>
+    </div>
+    <div class="home-quick">
+      <div class="panel hq"><div class="hq-ic">征</div><div class="hq-tx"><b>当前关卡</b><span>${ch.name} · 第${S.stage}关 ${isBossStage(S.chapter,S.stage)?"<b class='danger'>首领战</b>":""}</span></div><button class="btn btn-sm btn-ghost hq-btn" data-act="battle">去战斗</button></div>
+      <div class="panel hq"><div class="hq-ic">募</div><div class="hq-tx"><b>招募武将</b><span>招募令 ${S.tickets}${freePullAvailable()?" · 每日免费可用":""}</span></div><button class="btn btn-sm btn-gold hq-btn" data-act="recruit">去招募</button></div>
+      <div class="panel hq"><div class="hq-ic">阵</div><div class="hq-tx"><b>阵容羁绊</b><span>已激活 ${onBonds.length}/${BONDS.length} 组羁绊</span></div><button class="btn btn-sm btn-ghost hq-btn" data-act="formation">看阵容</button></div>
+      <div class="panel hq"><div class="hq-ic">藏</div><div class="hq-tx"><b>武将图鉴</b><span>已收集 ${Object.keys(S.heroes).filter(x=>S.heroes[x].c>0).length}/${HERO_IDS.length}</span></div><button class="btn btn-sm btn-ghost hq-btn" data-act="codex">看图鉴</button></div>
+    </div>
+    ${idleHas?`<div class="offline-box"><div class="ob-tx"><b>挂机收益待领取</b><span>金币 +${fmt(Math.floor(p.gold))} · 经验 +${fmt(Math.floor(p.exp))} · 招募令 +${Math.floor(p.tickets)} · 装备 ×${Math.floor(p.eqs)}</span></div><button class="btn btn-gold" data-act="collectIdle">领取</button></div>`:""}
+    <div class="sec-title">今日目标</div>
+    <div class="panel"><div class="guide-list">
+      ${[["勇闯新关卡，推进主线剧情","推图界面点击关卡开始战斗"],
+        ["招募武将，扩充你的队伍","每10次必得稀有，40次保底史诗"],
+        ["上阵6名武将并激活羁绊","同阵营与羁绊组合能大幅提升战力"],
+        ["给武将升级升星，强化装备","挂机收益是升级的主要来源"]].map((g,i)=>`<div class="guide-step"><span class="gs-n">${i+1}</span><p><b>${g[0]}</b> — ${g[1]}</p></div>`).join("")}
+    </div></div>
+  </div>`;
+}
+
+/* ============ 推图/战斗 ============ */
+let BATTLE={phase:"idle",speed:2,timer:null,events:[],evI:0,win:false};
+let VIEW_CHAP=0;
+function viewBattle(){
+  const ch=VIEW_CHAP? CHAPTERS[VIEW_CHAP-1] : CHAPTERS[S.chapter-1];
+  const nodes=[];
+  for(let i=1;i<=10;i++){
+    const idx=(VIEW_CHAP? (VIEW_CHAP-1)*10+i : stageIdx()-S.stage+i);
+    let cls="stage-node";
+    if(idx<=S.clearedMax) cls+=" cleared";
+    if(idx===stageIdx()) cls+=" cur";
+    if(i===10) cls+=" boss";
+    if(idx>stageIdx()) cls+=" lock";
+    nodes.push(`<div class="${cls}" data-node="${idx}"><div class="sn-name">${i===10?"首领·"+H[ch.boss].name:"第"+i+"关"}</div><div class="sn-st">${idx<=S.clearedMax?"已通关":idx===stageIdx()?"当前":""}</div></div>`);
+  }
+  return `
+  <div class="view-wrap">
+    <div class="chap-head">
+      <div class="chap-name">${ch.name} <small>${ch.sub}</small></div>
+      <div class="chap-tabs">
+        ${CHAPTERS.map((c,i)=>`<button class="chap-tab ${(VIEW_CHAP?VIEW_CHAP===c.id:c.id===S.chapter)?"cur":""}" data-chap="${c.id}">${c.name}</button>`).join("")}
+      </div>
+    </div>
+    <div class="stage-map">${nodes.join("")}</div>
+    <div class="sec-title">出战信息</div>
+    <div class="panel" style="padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+      <span class="power-tag">我方战力 ${fmt(getTeamPower())}</span>
+      <span style="color:var(--dim);font-size:12px">当前关卡敌军等级 Lv.${3+(S.chapter-1)*3+S.stage}</span>
+      <span style="flex:1"></span>
+      <button class="btn btn-red btn-sm" data-act="startBattle">挑战当前关</button>
+      <button class="btn btn-gold btn-sm" data-act="autoPush">连战推图</button>
+      <button class="btn btn-ghost btn-sm" data-act="sweep1">扫荡×1</button>
+      <button class="btn btn-ghost btn-sm" data-act="sweep10">扫荡×10</button>
+      <button class="btn btn-dark btn-sm" data-act="speedToggle">速度 ×${BATTLE.speed}</button>
+    </div>
+    <div id="battle-box"></div>
+  </div>`;
+}
+function renderBattleBox(){
+  const box=$("#battle-box"); if(!box) return;
+  document.body.classList.toggle("in-battle", BATTLE.phase!=="idle");
+  if(BATTLE.phase==="idle"){ box.innerHTML=`<div class="empty-tip">选择关卡开始战斗。战斗自动进行，胜利可获得金币、经验与装备。</div>`; return; }
+  const p=BATTLE.pUnits,e=BATTLE.eUnits;
+  const unitHtml=(u)=>`
+   <div class="bunit" data-bu="${u.side}${u.idx}">
+     ${portraitHtml(u.defId,"bu-portrait") || `<div class="bu-med fac-${H[u.defId].fac}">${esc(H[u.defId].glyph)}</div>`}
+     <div class="bu-hp"><i style="width:100%"></i><span class="hp-tx">100%</span></div>
+     <div class="bu-en"><i style="width:0%"></i><span class="en-tx">0</span></div>
+     <div class="bu-name">${esc(u.name)}</div>
+   </div>`;
+  box.innerHTML=`
+   <div id="battle-view">
+     <div class="bgimg bg-battle"></div><div class="veil"></div>
+     <div class="battle-top"><span class="power-tag">敌方阵容</span><span class="battle-round">回合 ${BATTLE.rounds||0}</span><span class="power-tag" style="color:var(--gold2)">我方阵容</span></div>
+     <div class="battle-enemy">${e.map(unitHtml).join("")}</div>
+     <div class="battle-mid"><div class="battle-vs">⚔ 对阵 ⚔</div><div class="battle-round" style="margin-top:2px">敌军 ${e.length} 人 · 我方 ${p.length} 人</div></div>
+     <div class="battle-player">${p.map(unitHtml).join("")}</div>
+     <div class="skill-banner"></div>
+     <div class="ult-cut" id="ult-cut"></div>
+     <div class="battle-log"></div>
+     <div class="battle-ctl">
+       <button class="btn btn-ghost btn-sm" data-act="speedToggle">速度 ×${BATTLE.speed}</button>
+       <button class="btn btn-red btn-sm" data-act="abortBattle">跳过</button>
+     </div>
+     ${BATTLE.phase==="done"? resultOverlay():""}
+   </div>`;
+  bindActions();
+  if(BATTLE.phase==="running") startBattleAnim();
+}
+function resultOverlay(){
+  const r=BATTLE.lastResult||{win:BATTLE.win,gold:0,exp:0,gained:[]};
+  const st=BATTLE.stats||null;
+  const topD=st?statTop(st,"dmg"):null, topT=st?statTop(st,"taken"):null, topH=st?statTop(st,"heal"):null;
+  const statHtml= st? `<div class="br-stats">
+      <div class="br-s-title">战报统计</div>
+      <div class="br-s-row">输出第一　<b>${esc(topD?topD.name:"-")}</b>　${topD?fmt(topD.dmg):0} 伤害</div>
+      <div class="br-s-row">承伤第一　<b>${esc(topT?topT.name:"-")}</b>　${topT?fmt(topT.taken):0} 伤害</div>
+      <div class="br-s-row">治疗第一　<b>${esc(topH?topH.name:"-")}</b>　${topH?fmt(topH.heal):0} 治疗</div>
+    </div>` : "";
+  return `<div class="battle-result ${r.win?"win":"lose"}">
+    <div class="br-title">${r.win?"胜利":"战败"}</div>
+    ${r.win?`<div class="br-rewards">
+       <span class="br-reward">金币 <b>+${fmt(r.gold)}</b></span>
+       <span class="br-reward">经验 <b>+${fmt(r.exp)}</b></span>
+       ${r.gained.map(g=>`<span class="br-reward">${g}</span>`).join("")}
+     </div>`:`<div style="color:var(--dim);font-size:13px;max-width:420px;text-align:center">战力不足。去招募武将、升级升星、强化装备，再来一战。</div>`}
+    ${statHtml}
+    <div style="display:flex;gap:10px">
+      ${r.win?`<button class="btn btn-gold" data-act="startBattle">挑战下一关</button>`:`<button class="btn btn-gold" data-act="startBattle">再战一次</button>`}
+      <button class="btn btn-ghost" data-act="backMap">返回</button>
+    </div>
+  </div>`;
+}
+function startBattle(animated){
+  if(!S.formation.some(Boolean)){ toast("请先上阵武将","err"); return; }
+  clearTimeout(BATTLE.timer);
+  const p=makePlayerUnits(), e=genEnemy(S.chapter,S.stage);
+  const startEv=applyBondStart(p,e);
+  const res=battleResolve(p,e);
+  // 结算已完成（胜败已定），将血条重置为满血、怒气归零、恢复存活，动画播放时再按事件逐格掉血，让掉血过程可见
+  [p,e].forEach(list=>list.forEach(u=>{ u.hp=u.maxHp; u.energy=0; u.alive=true; }));
+  // 开局羁绊效果重新施加一次，使动画中的血/怒气/增益与模拟结算完全一致
+  const startEv2=applyBondStart(p,e);
+  BATTLE.pUnits=p; BATTLE.eUnits=e; BATTLE.events=startEv2.concat(res.ev); BATTLE.evI=0; BATTLE.rounds=res.rounds; BATTLE.win=res.win; BATTLE.lastResult=null; BATTLE.stats=calcBattleStats(res.ev,p);
+  if(animated){ BATTLE.phase="running"; renderBattleBox(); }
+  else{ BATTLE.phase="done"; finishBattle(res.win,true); }
+}
+function finishBattle(win,instant){
+  BATTLE.phase="done";
+  if(win){
+    const idx=stageIdx();
+    const r=applyStageRewards(S.chapter,S.stage);
+    S.stats.wins++; if(idx>S.clearedMax){ S.clearedMax=idx; S.stats.stagesCleared++; }
+    const prev=stageIdx();
+    advanceStage();
+    BATTLE.lastResult={win:true,gold:r.gold,exp:r.exp,gained:r.gained};
+    sfx("win");
+  }else{
+    S.stats.loses++; BATTLE.lastResult={win:false}; sfx("lose");
+  }
+  saveGame();
+  if(instant){ renderBattleBox(); renderTopbar(); }
+  else{ renderBattleBox(); }
+  if(!win){ setTimeout(()=>{ renderBattleBox(); },600); }
+}
+function startBattleAnim(){
+  const ev=BATTLE.events, box=$("#battle-box");
+  const step=()=>{
+    if(BATTLE.phase!=="running") return;
+    if(BATTLE.evI>=ev.length){ finishBattle(BATTLE.win,false); return; }
+    const e=ev[BATTLE.evI++]; BATTLE.rounds=Math.max(BATTLE.rounds||0,1);
+    applyEvent(e);
+    const gap= ultCutImg(e)? (e.slot==="skU"?950:750) : 480;
+    BATTLE.timer=setTimeout(step, gap/BATTLE.speed);
+  };
+  step();
+}
+const BOND_ART={ taoyuan:"assets/ult-taoyuan.png", meiren:"assets/ult-meiren.png" };
+function ultCutImg(e){ if(e.t!=="banner"||!e.slot) return null; if(e.bond) return BOND_ART[e.bond]||null; const m=ULT_ART[e.u.defId]; return m? m[e.slot]||null : null; }
+const ULT_SLOT_TAG={ sk:"主动技", sk2:"秘传", skU:"无双", bond:"羁绊技" };
+function showUltCut(u, skName, img, slot){
+  const layer=$("#ult-cut"); if(!layer) return;
+  layer.innerHTML=`<div class="uc-flash"></div><img class="uc-art" src="${img}" alt=""><div class="uc-name">${esc(skName)}</div><div class="uc-hero">${slot==="bond"?esc("羁绊技"):esc(u.name+" · "+(ULT_SLOT_TAG[slot]||"无双"))}</div>`;
+  layer.classList.remove("show"); void layer.offsetWidth; layer.classList.add("show");
+}
+function applyEvent(e){
+  const log=$(".battle-log"); const rnd=$(".battle-round");
+  const bu=s=>$(`[data-bu="${s}"]`);
+  if(e.t==="banner"){ const b=$(".skill-banner"); b.textContent=(e.bond?"":e.u.name+" · ")+e.sk; b.classList.remove("enemy"); if(e.u.side==="e")b.classList.add("enemy"); b.style.animation="none"; void b.offsetWidth; b.style.animation=""; const c=bu(e.u.side+""+e.u.idx); if(c){ c.classList.add("cast"); setTimeout(()=>c.classList.remove("cast"),650); } if(e.u&&!e.bond)e.u.energy=0; sfx("skill"); if(e.u.side==="p"){ const cut=ultCutImg(e); if(cut) showUltCut(e.u, e.sk, cut, e.slot); } }
+  else if(e.t==="atk"){ const u=bu(e.u.side+""+e.u.idx), t=bu(e.target.side+""+e.target.idx); if(u){u.classList.add("att"); setTimeout(()=>u.classList.remove("att"),200);} if(t){t.classList.add("hit"); setTimeout(()=>t.classList.remove("hit"),380); floatDmg(t,e.text.replace(/.*造成/,"造成"),"");} if(e.d!=null&&e.target) e.target.hp=Math.max(0,e.target.hp-e.d); if(e.target&&e.target.hp>0) e.target.energy=Math.min(100,e.target.energy+20); if(e.u)e.u.energy+=35; if(log){const d=document.createElement("div");d.innerHTML=colorize(e.text);log.appendChild(d);log.scrollTop=log.scrollHeight;} sfx("hit"); }
+  else if(e.t==="skillText"){ if(log){const d=document.createElement("div");d.innerHTML=colorize(e.text);log.appendChild(d);log.scrollTop=log.scrollHeight;} }
+  else if(e.t==="die"){ const t=bu(e.u.side+""+e.u.idx); if(t)t.classList.add("dead"); e.u.alive=false; e.u.hp=0; }
+  else if(e.t==="crit"){ }
+  else if(e.t==="stunText"){ if(log){const d=document.createElement("div");d.innerHTML=colorize(e.text);log.appendChild(d);log.scrollTop=log.scrollHeight;} }
+  else if(e.t==="stunned"){ const t=bu(e.u.side+""+e.u.idx); if(t){floatDmg(t,"眩晕","dim");} }
+  else if(e.t==="skHit"){ if(e.aoe){ fxAoe(e.u.side==="p"?"e":"p"); sfx("skAoe"); } else sfx("skillHit"); (e.targets||[]).forEach(tg=>{ const fu=BATTLE.pUnits.concat(BATTLE.eUnits).find(x=>x.side===tg.side&&x.idx===tg.idx); if(fu&&tg.d!=null){ fu.hp=Math.max(0,fu.hp-tg.d); if(!tg.noGain&&fu.hp>0)fu.energy=Math.min(100,fu.energy+20); } const el=bu(tg.side+""+tg.idx); if(!el)return; el.classList.add("hit"); setTimeout(()=>el.classList.remove("hit"),420); floatDmg(el,"-"+fmt(tg.d),"dmg"); if(tg.crit)floatDmg(el,"暴击","crit"); }); }
+  else if(e.t==="skHeal"){ sfx("skHeal"); (e.targets||[]).forEach(tg=>{ const el=bu(tg.side+""+tg.idx); if(!el)return; const fu=BATTLE.pUnits.concat(BATTLE.eUnits).find(x=>x.side===tg.side&&x.idx===tg.idx); if(fu&&tg.h!=null)fu.hp=Math.min(fu.maxHp,fu.hp+tg.h); el.classList.add("healfx"); setTimeout(()=>el.classList.remove("healfx"),720); floatDmg(el,"+"+fmt(tg.h),"heal"); }); }
+  else if(e.t==="skBuff"){ sfx("skBuff"); (e.targets||[]).forEach(tg=>{ const el=bu(tg.side+""+tg.idx); if(!el)return; el.classList.add("bufffx"); setTimeout(()=>el.classList.remove("bufffx"),720); floatDmg(el,e.kind==="atk"?"攻击↑":e.kind==="def"?"防御↑":"速度↑","buff"); }); }
+  // hp / 能量更新
+  BATTLE.pUnits.concat(BATTLE.eUnits).forEach(u=>{ const el=bu(u.side+""+u.idx); if(el){ const pct=Math.max(0,u.hp/u.maxHp*100); const bar=el.querySelector(".bu-hp i"); const tx=el.querySelector(".hp-tx"); if(bar){ bar.style.width=pct+"%"; bar.style.background=pct>50?"linear-gradient(90deg,#42b96a,#8fe09a)":pct>25?"linear-gradient(90deg,#e0a83c,#ffd98a)":"linear-gradient(90deg,#d95b4a,#ff9a8a)"; } if(tx) tx.textContent=Math.round(pct)+"%";
+    const en=el.querySelector(".bu-en"); const eni=el.querySelector(".bu-en i"); const ent=el.querySelector(".bu-en .en-tx"); if(en&&eni){ const ep=Math.min(100,Math.max(0,u.energy)); eni.style.width=ep+"%"; en.classList.toggle("ready",u.energy>=70); if(ent) ent.textContent=u.energy>=70?"放技":Math.round(u.energy); } } });
+  if(rnd) rnd.textContent="回合 "+BATTLE.rounds;
+}
+function floatDmg(el,text,cls){
+  if(!el)return; const f=document.createElement("div"); f.className="dmg-float "+(cls||""); f.textContent=text;
+  el.appendChild(f); setTimeout(()=>f.remove(),1100);
+}
+function fxAoe(side){
+  const v=$("#battle-view"); if(!v)return;
+  const f=document.createElement("div"); f.className="fx-aoe "+(side==="p"?"fx-aoe-p":"fx-aoe-e");
+  v.appendChild(f); setTimeout(()=>f.remove(),780);
+}
+function colorize(t){
+  return t.replace(/【(.*?)】/g,'<b>【$1】</b>').replace(/造成(\d+)伤害/,'造成<b style="color:#ffd98a">$1</b>伤害').replace(/治疗(\d+)生命/,'治疗<b style="color:#7fe89a">$1</b>生命');
+}
+function autoPush(){
+  if(!S.formation.some(Boolean)){ toast("请先上阵武将","err"); return; }
+  let n=0, won=false;
+  for(let i=0;i<30;i++){
+    const p=makePlayerUnits(), e=genEnemy(S.chapter,S.stage);
+    const res=battleResolve(p,e);
+    if(res.win){ const idx=stageIdx(); const r=applyStageRewards(S.chapter,S.stage); S.stats.wins++; if(idx>S.clearedMax){S.clearedMax=idx;S.stats.stagesCleared++;} advanceStage(); n++; won=true; }
+    else{ S.stats.loses++; won=false; break; }
+  }
+  saveGame(); renderTopbar(); renderCurrent();
+  if(n>0) toast("连战推进 "+n+" 关！","ok"); else toast("连战未推进，战力不足","err");
+  sfx(won?"win":"lose");
+}
+function recoverSweeps(){
+  if(!S) return;
+  const CD=30*60*1000;
+  if(!S.sweepAt) S.sweepAt=Date.now();
+  if(S.sweepCount>=S.sweepMax){ S.sweepAt=Date.now(); return; }
+  const elapsed=Date.now()-S.sweepAt;
+  if(elapsed>=CD){
+    const gained=Math.floor(elapsed/CD);
+    S.sweepCount=Math.min(S.sweepMax,S.sweepCount+gained);
+    S.sweepAt+=gained*CD;
+    if(S.sweepCount>=S.sweepMax){ S.sweepAt=Date.now(); }
+  }
+}
+function sweep(n){
+  const idx=stageIdx();
+  if(S.clearedMax<idx){ toast("先通关当前关卡才能扫荡","err"); return; }
+  recoverSweeps();
+  if(S.sweepCount<n){ toast("扫荡次数不足（剩余"+S.sweepCount+"次），每30分钟恢复1次","err"); return; }
+  S.sweepCount-=n;
+  let got=0, extra=[];
+  for(let i=0;i<n;i++){
+    const r=applyStageRewards(S.chapter,S.stage,true);
+    got++; if(r.gained.length) extra.push(r.gained.join("、"));
+  }
+  saveGame(); renderTopbar(); renderCurrent();
+  toast("扫荡完成 ×"+got+"（剩余扫荡"+S.sweepCount+"次）"+(extra.length? " · "+extra.join("、"):""),"ok");
+  sfx("win");
+}
+function openSweepModal(c,s){
+  recoverSweeps();
+  const st=(s-1)%10+1;
+  const CD=30*60*1000;
+  const nextIn=S.sweepCount<S.sweepMax? Math.max(0,Math.ceil((S.sweepAt+CD-Date.now())/60000)) : 0;
+  const hint=S.sweepCount>=S.sweepMax?"扫荡次数已满（"+S.sweepMax+"次）":("剩余 "+S.sweepCount+"/"+S.sweepMax+" 次 · 下次恢复约"+nextIn+"分钟后");
+  modal(`
+  <div style="text-align:center;padding:8px 6px 2px">
+    <div style="font-size:20px;font-weight:800;color:var(--gold)">第${st}关 · 扫荡</div>
+    <div style="font-size:12px;color:var(--dim);margin:8px 0 4px">该关已通关，扫荡可直接获得战斗奖励</div>
+    <div style="font-size:12px;color:var(--gold);margin:0 0 12px">${hint}</div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button class="btn btn-ghost" style="flex:1" data-sweep="1" ${S.sweepCount<1?"disabled":""}>扫荡×1</button>
+      <button class="btn btn-gold" style="flex:1" data-sweep="10" ${S.sweepCount<10?"disabled":""}>扫荡×10</button>
+    </div>
+    <button class="btn btn-ghost btn-sm" style="margin-top:12px" onclick="closeModal()">取消</button>
+  </div>`);
+  $$("#modal-root [data-sweep]").forEach(b=>b.onclick=()=>{
+    const n=+b.dataset.sweep; closeModal();
+    S.chapter=c; S.stage=s; saveGame(); renderCurrent();
+    sweep(n);
+  });
+}
+
+/* ============ 武将列表 ============ */
+let HERO_FILTER={fac:"all",rar:"all"};
+function viewHeroes(){
+  const ids=HERO_IDS.filter(id=> (HERO_FILTER.fac==="all"||H[id].fac===HERO_FILTER.fac) && (HERO_FILTER.rar==="all"||H[id].rar===HERO_FILTER.rar));
+  return `
+  <div class="view-wrap">
+    <div class="sec-title">武将</div>
+    <div class="codex-filters">
+      ${[["all","全部阵营"],["wei","魏"],["shu","蜀"],["wu","吴"],["qun","群"]].map(f=>`<button class="fbtn ${HERO_FILTER.fac===f[0]?"on":""}" data-ffac="${f[0]}">${f[1]}</button>`).join("")}
+      <span style="flex:1"></span>
+      ${[["all","全部"],["r","精良"],["sr","稀有"],["ssr","史诗"],["ur","传说"]].map(f=>`<button class="fbtn ${HERO_FILTER.rar===f[0]?"on":""}" data-frar="${f[0]}">${f[1]}</button>`).join("")}
+    </div>
+    <div class="hero-grid">${ids.map(id=>heroCard(id)).join("")}</div>
+  </div>`;
+}
+
+/* ============ 阵容 ============ */
+let FSLOT=null;
+function viewFormation(){
+  const ab=activeBonds(), on=ab.filter(x=>x.on);
+  return `
+  <div class="view-wrap">
+    <div class="sec-title">上阵阵容 <span class="power-tag" style="margin-left:8px">总战力 ${fmt(getTeamPower())}</span></div>
+    <div class="form-grid">
+      ${S.formation.map((id,i)=>{
+        if(id){ const own=S.heroes[id], st=calcStats(id,own.lv,own.star,own.eq,own.eqLv), pw=unitPower(id,own.lv,own.star,own.eq,own.eqLv);
+          return `<div class="form-slot has fac-${H[id].fac} r-${H[id].rar}" data-fslot="${i}">
+            ${portraitHtml(id,"form-portrait") || `<div class="h-med" style="width:56px;height:56px;font-size:27px">${esc(H[id].glyph)}</div>`}
+            <div class="h-name">${esc(H[id].name)}</div>
+            <div class="h-meta">${ROLES[H[id].role]} · Lv.${own.lv}</div>
+            <div class="h-stars">${"★".repeat(own.star)}</div>
+            <div class="fs-stats"><span>攻${fmt(st.atk)}</span><span>命${fmt(st.hp)}</span><span>防${fmt(st.def)}</span><span>速${fmt(st.spd)}</span><span class="fs-pow">战${fmt(pw)}</span></div>
+          </div>`;}
+        return `<div class="form-slot" data-fslot="${i}"><div class="fs-empty">+ 上阵武将</div></div>`;
+      }).join("")}
+    </div>
+    <div class="sec-title">羁绊 ${on.length?`<span class="ok" style="font-size:12px;margin-left:6px">已激活 ${on.length}/${BONDS.length}</span>`:""}</div>
+    <div class="bond-list">
+      ${ab.map(x=>`<div class="bond-item ${x.on?"on":"off"}">
+        <div class="b-stat">${x.on?"合":""}</div>
+        <div style="flex:1;min-width:0">
+          <div class="b-name">${esc(x.b.name)}</div>
+          <div class="b-heroes">${x.b.heroes.map(hid=>esc(H[hid].name)).join(" + ")}</div>
+          <div class="b-desc">${esc(x.b.desc)} ${x.on?'':'<span style="color:var(--faint)">（未激活）</span>'}</div>
+        </div>
+      </div>`).join("")}
+    </div>
+  </div>`;
+}
+
+/* ============ 整备（上阵武将养成） ============ */
+const MSLOT={weapon:"武",armor:"甲",helm:"盔",boots:"靴",mount:"骑"};
+function viewMaintain(){
+  const ids=S.formation.filter(Boolean);
+  if(ids.length===0){
+    return `<div class="view-wrap"><div class="sec-title">整备 · 上阵武将</div>
+      <div class="panel" style="text-align:center;color:var(--faint);padding:44px 0">暂无上阵武将<br><br><button class="btn btn-gold" data-nav="formation">去阵容上阵</button></div></div>`;
+  }
+  return `
+  <div class="view-wrap">
+    <div class="sec-title">整备 · 上阵武将 <span class="power-tag" style="margin-left:8px">总战力 ${fmt(getTeamPower())}</span></div>
+    <div class="m-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px">
+      ${ids.map(id=>maintainCard(id)).join("")}
+    </div>
+    <div style="margin-top:10px;font-size:11.5px;color:var(--faint)">点部位按钮（武/甲/盔/靴/骑）直接强化该部位；升级消耗经验与金币。</div>
+  </div>`;
+}
+function maintainCard(id){
+  const own=heroData(id), def=H[id];
+  const pw=unitPower(id,own.lv,own.star,own.eq,own.eqLv);
+  return `
+  <div class="panel" style="padding:12px">
+    <div style="display:flex;gap:12px;align-items:center">
+      ${portraitHtml(id,"form-portrait") || `<div class="h-med" style="width:56px;height:56px;font-size:27px">${esc(def.glyph)}</div>`}
+      <div style="flex:1;min-width:0">
+        <div class="h-name" style="font-size:15px">${esc(def.name)} <span style="font-size:11px;color:var(--rarc)">${RAR[def.rar].n}</span></div>
+        <div class="h-meta">${ROLES[def.role]} · Lv.${own.lv}/100 · 战力 ${fmt(pw)}</div>
+        <div class="h-stars">${"★".repeat(own.star)}</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+      ${EQ_SLOTS.map(s=>{
+        const ei=own.eq[s.id]?S.equipInv[own.eq[s.id]]:null;
+        const lv=(own.eqLv&&own.eqLv[s.id])||0;
+        const label=ei?eqName(s.id,ei.r).split("·")[0]:"空";
+        return `<button class="mop-eq ${lv>0?'up':''} ${ei?'has':''}" data-mop="eq" data-hero="${id}" data-slot="${s.id}" title="${s.name}${ei?"："+eqName(s.id,ei.r):""} · 部位强化+${lv}">${MSLOT[s.id]}·${label} +${lv}</button>`;
+      }).join("")}
+    </div>
+    <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+      <button class="btn btn-gold btn-sm" data-mop="lv" data-hero="${id}">升级</button>
+      <button class="btn btn-gold btn-sm" data-mop="lv10" data-hero="${id}">升10级</button>
+      <button class="btn btn-ghost btn-sm" data-mop="lvmax" data-hero="${id}">一键升级</button>
+      <button class="btn btn-dark btn-sm" data-mop="detail" data-hero="${id}">详情</button>
+    </div>
+  </div>`;
+}
+let slotFilter="all";
+function openSlotModal(i){
+  const id=S.formation[i];
+  const owned=HERO_IDS.filter(x=>S.heroes[x]&&S.heroes[x].c>0);
+  let list=slotFilter==="all"? owned : owned.filter(x=>H[x].role===slotFilter);
+  list.sort((a,b)=>(RAR[H[b].rar].ord-RAR[H[a].rar].ord)||(unitPower(b,S.heroes[b].lv,S.heroes[b].star,S.heroes[b].eq,S.heroes[b].eqLv)-unitPower(a,S.heroes[a].lv,S.heroes[a].star,S.heroes[a].eq,S.heroes[a].eqLv)));
+  modal(`
+   <button class="m-close" onclick="closeModal()">×</button>
+   <div class="m-head"><div style="flex:1">
+     <div class="m-name" style="font-size:17px">阵容槽位 ${i+1}</div>
+     <div style="font-size:12px;color:var(--faint);margin-top:4px">选择一名已拥有的武将来上阵</div>
+   </div></div>
+   <div class="slot-filters" style="display:flex;gap:6px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.06)">
+     ${[["all","全部"],["out","输出"],["tank","坦克"],["supp","辅助"],["heal","治疗"],["ass","刺客"]].map(o=>`<button class="sf-chip ${slotFilter===o[0]?'on':''}" data-slotf="${o[0]}">${o[1]}</button>`).join("")}
+   </div>
+   <div class="m-body">
+     <div class="hero-grid" style="max-height:44vh;overflow-y:auto">${list.map(id=>heroCard(id,{showCount:true})).join("")}${list.length===0?'<div style="color:var(--faint);text-align:center;padding:24px 0">该职业暂无已拥有武将</div>':''}</div>
+     ${id?`<div style="margin-top:12px"><button class="btn btn-dark btn-sm" data-unequip="${i}">卸下 ${esc(H[id].name)}</button></div>`:""}
+   </div>`);
+  $$("#modal-root [data-slotf]").forEach(el=>el.onclick=()=>{ slotFilter=el.dataset.slotf; openSlotModal(i); sfx("click"); });
+  $$("#modal-root [data-hero]").forEach(el=>el.onclick=()=>{
+    const hid=el.dataset.hero;
+    if(!S.formation.includes(hid)){ S.formation[i]=hid; saveGame(); closeModal(); renderCurrent(); sfx("click"); }
+    else toast("该武将已在上阵阵容中","err");
+  });
+  $$("#modal-root [data-unequip]").forEach(el=>el.onclick=()=>{ S.formation[+el.dataset.unequip]=null; saveGame(); closeModal(); renderCurrent(); sfx("click"); });
+}
+
+/* ============ 招募 ============ */
+function viewRecruit(){
+  const free=freePullAvailable();
+  return `
+  <div class="view-wrap">
+    <div class="recruit-stage">
+      <div class="bgimg bg-main"></div><div class="veil"></div>
+      <h2>武将招募</h2>
+      <p>天下英雄，尽入彀中。消耗招募令，招募三国名将。</p>
+      <div style="display:flex;gap:10px;margin-top:6px">
+        <button class="btn btn-gold" data-act="pull1">招募×1</button>
+        <button class="btn btn-red" data-act="pull10">招募×10</button>
+      </div>
+      ${free?`<button class="btn btn-ghost btn-sm" data-act="freePull">每日免费招募×1</button>`:""}
+    </div>
+    <div class="recruit-odds">
+      ${[["ur","传说","1.5%"],["ssr","史诗","10.5%"],["sr","稀有","30%"],["r","精良","58%"]].map(o=>`<div class="odd-box"><span class="o-r" style="background:${RAR[o[0]].c}"></span><span>${o[1]}</span><b>${o[2]}</b></div>`).join("")}
+    </div>
+    <div class="recruit-pity">
+      <span class="pity-item">距稀有保底 <b>${Math.max(0,10-S.pity.sr)}</b> 抽</span>
+      <span class="pity-item">距史诗保底 <b>${Math.max(0,40-S.pity.ssr)}</b> 抽</span>
+      <span class="pity-item">已招募 <b>${S.stats.pulls}</b> 次</span>
+      <span class="pity-item">招募令 <b style="color:#ffd98a">${S.tickets}</b></span>
+    </div>
+  </div>`;
+}
+function doPull(n,isFree){
+  if(isFree){
+    if(!freePullAvailable()){ toast("今日免费次数已用","err"); return; }
+    const d=new Date(); S.freeDay=d.getFullYear()+"-"+d.getMonth()+"-"+d.getDate();
+  }
+  let res;
+  if(isFree){ res=[]; for(let i=0;i<n;i++) res.push(pullOnce()); }
+  else res=recruit(n);
+  if(!res) return;
+  openRecruitResult(res); saveGame(); renderTopbar(); sfx("recruit");
+}
+function openRecruitResult(res){
+  const best=res.map(r=>r.pick).sort((a,b)=>RAR[a].ord-RAR[b].ord).pop();
+  const topNames=res.filter(r=>r.pick===best).map(r=>H[r.heroId].name).join("、");
+  modal(`
+   <button class="m-close" onclick="closeModal()">×</button>
+   <div class="m-head"><div style="flex:1">
+     <div class="m-name" style="font-size:18px">招募结果</div>
+     <div class="rc-top">本次招募 · 获得 <b>${esc(topNames)}</b> <span class="rc-top-r" style="background:${RAR[best].c}">${RAR[best].n}</span></div>
+     <div style="font-size:12px;color:var(--dim);margin-top:4px">${best==="ur"?"天命神将降临！":best==="ssr"?"史诗将星入列！":"武将加入队伍"}</div>
+   </div></div>
+   <div class="m-body">
+     <div class="result-cards">
+       ${res.map((r,i)=>`<div class="result-card ${r.pick===best?"best":""}" data-rc="${i}">
+         <div class="rc-inner">
+           <div class="rc-face rc-back"></div>
+           <div class="rc-face rc-hero fac-${H[r.heroId].fac} r-${r.pick}">
+             ${portraitHtml(r.heroId,"r-portrait") || `<div class="h-med" style="width:52px;height:52px;font-size:26px">${esc(H[r.heroId].glyph)}</div>`}
+             <div class="rc-name">${esc(H[r.heroId].name)}</div>
+             <div class="rc-r" style="color:var(--rarc)">${RAR[r.pick].n} · ${FAC[H[r.heroId].fac].n}</div>
+             ${r.new?"<div style='font-size:10px;color:#7fe89a'>新获得</div>":""}
+           </div>
+         </div>
+       </div>`).join("")}
+     </div>
+     <div style="text-align:center;margin-top:10px"><button class="btn btn-gold" onclick="closeModal();renderCurrent();">收下</button></div>
+   </div>`);
+  $$("#modal-root .result-card").forEach((el,i)=>{
+    setTimeout(()=>{ el.classList.add("flip"); sfx(res[i].pick==="ssr"||res[i].pick==="ur"?"recruitR":"recruit"); },260+i*220);
+  });
+}
+
+/* ============ 图鉴 ============ */
+function viewCodex(){
+  const ids=HERO_IDS.filter(id=> (HERO_FILTER.fac==="all"||H[id].fac===HERO_FILTER.fac) && (HERO_FILTER.rar==="all"||H[id].rar===HERO_FILTER.rar));
+  const ab=activeBonds();
+  return `
+  <div class="view-wrap">
+    <div class="sec-title">武将图鉴 <span style="font-size:12px;color:var(--faint);margin-left:6px">${Object.keys(S.heroes).filter(x=>S.heroes[x].c>0).length}/${HERO_IDS.length} 已收集</span></div>
+    <div class="codex-filters">
+      ${[["all","全部阵营"],["wei","魏"],["shu","蜀"],["wu","吴"],["qun","群"]].map(f=>`<button class="fbtn ${HERO_FILTER.fac===f[0]?"on":""}" data-ffac="${f[0]}">${f[1]}</button>`).join("")}
+      <span style="flex:1"></span>
+      ${[["all","全部"],["r","精良"],["sr","稀有"],["ssr","史诗"],["ur","传说"]].map(f=>`<button class="fbtn ${HERO_FILTER.rar===f[0]?"on":""}" data-frar="${f[0]}">${f[1]}</button>`).join("")}
+    </div>
+    <div class="hero-grid">${ids.map(id=>heroCard(id)).join("")}</div>
+    <div class="sec-title">羁绊总览</div>
+    <div class="bond-list">
+      ${ab.map(x=>`<div class="bond-item ${x.on?"on":"off"}">
+        <div class="b-stat">${x.on?"合":""}</div>
+        <div style="flex:1;min-width:0">
+          <div class="b-name">${esc(x.b.name)}</div>
+          <div class="b-heroes">${x.b.heroes.map(hid=>esc(H[hid].name)).join(" + ")}</div>
+          <div class="b-desc">${esc(x.b.desc)} ${x.on?"":"<span style='color:var(--faint)'>（未激活）</span>"}</div>
+        </div>
+      </div>`).join("")}
+    </div>
+  </div>`;
+}
+
+/* ============ 设置 ============ */
+function viewSettings(){
+  return `
+  <div class="view-wrap" style="max-width:720px">
+    <div class="sec-title">设置</div>
+    <div class="panel" style="padding:4px 16px">
+      <div class="set-row"><div class="sr-tx"><b>音效</b><span>点击、战斗与招募音效</span></div><div class="switch ${S.sound?"on":""}" data-sound></div></div>
+      <div class="set-row"><div class="sr-tx"><b>音乐</b><span>三国古风背景音乐（循环播放）</span></div><div class="switch ${S.music?"on":""}" data-music></div></div>
+      <div class="set-row"><div class="sr-tx"><b>离线挂机收益</b><span>离线最多累积 12 小时收益，登录时自动发放</span></div><span class="ok">已开启</span></div>
+      <div class="set-row"><div class="sr-tx"><b>自动保存</b><span>每 30 秒自动存档到本地</span></div><span class="ok">已开启</span></div>
+    </div>
+    <div class="sec-title">存档</div>
+    <div class="panel" style="padding:4px 16px">
+      <div class="set-row"><div class="sr-tx"><b>导出存档</b><span>复制存档码，可跨设备恢复进度</span></div><button class="btn btn-ghost btn-sm" data-act="exportSave">导出</button></div>
+      <div class="set-row"><div class="sr-tx"><b>导入存档</b><span>粘贴存档码恢复进度</span></div><button class="btn btn-ghost btn-sm" data-act="importSave">导入</button></div>
+      <div class="set-row"><div class="sr-tx"><b>重置游戏</b><span>清除全部本地进度，重新开始</span></div><button class="btn btn-red btn-sm" data-act="resetSave">重置</button></div>
+    </div>
+    <div class="sec-title">测试</div>
+    <div class="panel" style="padding:4px 16px">
+      <div class="set-row"><div class="sr-tx"><b>测试命令</b><span>输入指令开启测试模式：所有武将满星、满装备</span></div></div>
+      <div style="display:flex;gap:8px;padding:10px 0">
+        <input id="cmd-input" placeholder="输入测试指令…" style="flex:1;background:var(--ink2);color:var(--paper);border:1px solid var(--goldline);border-radius:8px;padding:8px 10px;font-size:12px">
+        <button class="btn btn-gold btn-sm" data-act="runCmd">执行</button>
+      </div>
+    </div>
+    <div class="sec-title">说明</div>
+    <div class="panel" style="padding:14px 16px;font-size:12.5px;color:var(--dim);line-height:1.9">
+      三国放置 · 群雄逐鹿：挂机放置类卡牌游戏。<br>
+      玩法：招募武将 → 上阵阵容 → 激活羁绊 → 强化装备 → 自动推图。挂机收益随关卡推进增长。<br>
+      阵营：魏（蓝）· 蜀（赤）· 吴（青）· 群（紫）。同阵营武将搭配羁绊组合可获得大幅增益。<br>
+      数据保存在浏览器本地。
+    </div>
+  </div>`;
+}
+function runTestCmd(){ const v=($("#cmd-input")&&$("#cmd-input").value||"").trim(); if(v==="yangkwolf"){ enableTestMode(); } else { toast("命令无效","err"); } }
+function enableTestMode(){
+  HERO_IDS.forEach(id=>{
+    const h=heroData(id); h.c=Math.max(h.c,1); h.star=9;
+    EQ_SLOTS.forEach(s=>{
+      const oldId=h.eq[s.id];
+      if(oldId){ const oldIt=S.equipInv[oldId]; if(oldIt) oldIt.onHero=null; }
+      const eid=uid(); S.equipInv[eid]={id:eid,slot:s.id,r:5,lv:0,onHero:id}; h.eq[s.id]=eid;
+    });
+  });
+  cleanupFormation(); saveGame(); renderAll();
+  toast("测试模式开启：所有武将满星满装备！","ok"); sfx("win");
+}
+function exportSave(){ const code=btoa(unescape(encodeURIComponent(JSON.stringify(S))));
+  modal(`<button class="m-close" onclick="closeModal()">×</button><div class="m-head"><div><div class="m-name" style="font-size:17px">导出存档</div></div></div>
+  <div class="m-body"><textarea id="save-code" style="width:100%;height:120px;background:var(--ink2);color:var(--paper);border:1px solid var(--goldline);border-radius:8px;padding:10px;font-size:11px;font-family:monospace">${code}</textarea>
+  <div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-gold btn-sm" onclick="navigator.clipboard&&navigator.clipboard.writeText($('#save-code').value).then(()=>toast('已复制','ok'))">复制</button><button class="btn btn-ghost btn-sm" onclick="closeModal()">关闭</button></div></div>`); }
+function importSave(){ modal(`<button class="m-close" onclick="closeModal()">×</button><div class="m-head"><div><div class="m-name" style="font-size:17px">导入存档</div><div style="font-size:12px;color:var(--faint);margin-top:4px">粘贴存档码后点确认导入</div></div></div>
+  <div class="m-body"><textarea id="import-code" placeholder="粘贴存档码…" style="width:100%;height:120px;background:var(--ink2);color:var(--paper);border:1px solid var(--goldline);border-radius:8px;padding:10px;font-size:11px;font-family:monospace"></textarea>
+  <div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-gold btn-sm" onclick="importDo()">确认导入</button><button class="btn btn-ghost btn-sm" onclick="closeModal()">取消</button></div></div>`); }
+function importDo(){
+  const v=$("#import-code").value.trim(); if(!v){ toast("请输入存档码","err"); return; }
+  try{ const d=JSON.parse(decodeURIComponent(escape(atob(v)))); if(!d||!d.heroes) throw 0;
+    S=Object.assign(defaultState(),d); S.pending=Object.assign({gold:0,exp:0,tickets:0,eqs:0},S.pending||{}); if(!S.equipInv)S.equipInv={}; cleanupFormation(); saveGame(); closeModal(); renderAll(); toast("导入成功","ok");
+  }catch(e){ toast("存档码无效","err"); } }
+function resetSave(){ modal(`<button class="m-close" onclick="closeModal()">×</button><div class="m-head"><div><div class="m-name" style="font-size:17px">重置游戏</div></div></div>
+  <div class="m-body"><p style="font-size:13px;color:var(--dim)">确定要清除全部本地进度吗？此操作不可恢复。</p>
+  <div style="display:flex;gap:8px;margin-top:14px"><button class="btn btn-red btn-sm" onclick="resetDo()">确认重置</button><button class="btn btn-ghost btn-sm" onclick="closeModal()">取消</button></div></div>`); }
+function resetDo(){ localStorage.removeItem(SAVE_KEY); S=defaultState(); S.seenIntro=false; closeModal(); renderAll(); toast("已重置"); openIntro(); }
+
+/* ============ 武将详情 ============ */
+function skillBoxHtml(h,star){
+  const sk2=h.sk2||h.sk, su=h.skU;
+  const sk2Ok=star>=6, ultOk=star>=7&&!!su;
+  return `
+   <div class="skill-box"><div class="sk-name">主动技能 · ${esc(h.sk.n)}</div><div class="sk-desc">${esc(h.sk.d)}</div></div>
+   <div class="skill-box ${sk2Ok?'':'sk-lock'}"><div class="sk-name">第二技能 · ${esc(sk2.n)}${sk2Ok?'':'<span class="sk-lock-tip">升至6星解锁</span>'}</div><div class="sk-desc">${esc(sk2.d)}</div></div>
+   ${su? `<div class="skill-box ${ultOk?'sk-ult':'sk-lock'}"><div class="sk-name">无双大招 · ${esc(su.n)}${ultOk?'':'<span class="sk-lock-tip">升至7星解锁</span>'}</div><div class="sk-desc">${esc(su.d)}</div></div>`:""}`;
+}
+function openHeroModal(id){
+  const h=H[id], own=S.heroes[id];
+  const owned=own&&own.c>0;
+  if(!owned){ modal(`
+    <button class="m-close" onclick="closeModal()">×</button>
+    <div class="m-head">${portraitHtml(id,"m-portrait gs") || `<div class="h-med" style="filter:grayscale(1);background:#1d1a16;border-color:#4a443a;color:#6d6658">${esc(h.glyph)}</div>`}
+      <div><div class="m-name">${esc(h.name)}</div>
+      <div class="m-role"><span class="chip chip-${h.role}">${ROLES[h.role]}</span><span class="chip" style="color:var(--rarc)">${RAR[h.rar].n}</span><span class="chip" style="color:var(--fac,#fff)">${FAC[h.fac].n}阵营</span></div></div></div>
+    <div style="text-align:center;margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="openArtModal('${id}')">立绘大图</button></div>
+    <div class="m-body">${skillBoxHtml(h,0)}
+    <div style="text-align:center;margin-top:14px"><button class="btn btn-gold" onclick="closeModal();location.hash='#/recruit'">去招募</button></div></div>`); return; }
+  const st=calcStats(id,own.lv,own.star,own.eq,own.eqLv), pw=unitPower(id,own.lv,own.star,own.eq,own.eqLv);
+  const ne=expNeed(own.lv), gc=levelUpCost(own.lv);
+  const eqHtml=EQ_SLOTS.map(s=>{ const it=own.eq[s.id]; const ei=it?S.equipInv[it]:null; return `
+    <div class="eq-slot" data-eqslot="${s.id}" ${ei?`style="--eqc:${EQ_RAR[ei.r].c}"`:""}>
+      <div class="es-icobox ${ei?'has':''}">${ei?(eqWeaponImg(ei.slot,ei.r)?`<img src="${eqWeaponImg(ei.slot,ei.r)}" class="eq-ico-lg" style="width:54px;height:54px;object-fit:contain">`:`<span class="eq-ico eq-ico-lg ico-${ei.slot}"></span>`):`<span class="eq-ico-empty"></span>`}</div>
+      <div class="es-name">${s.name}</div>
+      ${ei?`<div class="es-item" style="color:${EQ_RAR[ei.r].c}">${esc(eqName(ei.slot,ei.r))}</div><div class="es-lv">部位强化 +${(own.eqLv&&own.eqLv[s.id])||0} · ${eqStatsText(ei,(own.eqLv&&own.eqLv[s.id])||0)}</div>`:`<div class="es-item" style="color:var(--faint)">未装备</div>`}
+    </div>`; }).join("");
+  modal(`
+   <button class="m-close" onclick="closeModal()">×</button>
+   <div class="m-head">${portraitHtml(id,"m-portrait") || `<div class="h-med fac-${h.fac}" style="border-color:${RAR[h.rar].c}">${esc(h.glyph)}</div>`}
+     <div><div class="m-name">${esc(h.name)} <span style="font-size:12px;color:var(--rarc)">${RAR[h.rar].n}</span></div>
+     <div class="m-role"><span class="chip chip-${h.role}">${ROLES[h.role]}</span><span class="chip" style="color:var(--fac,#fff)">${FAC[h.fac].n}阵营</span><span class="chip" style="color:var(--gold2)">${own.c} 个</span></div>
+     <div class="h-stars" style="font-size:12px;margin-top:4px">${"★".repeat(own.star)}<span style="opacity:.25">${"★".repeat(9-own.star)}</span></div></div></div>
+   <div class="m-body">
+     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><button class="btn btn-ghost btn-sm" onclick="openArtModal('${id}')">立绘大图</button><span style="font-size:11px;color:var(--faint)">查看武将高清人物立绘</span></div>
+     <div class="stat-grid">
+       <div class="stat-box"><span>攻击</span><b>${fmt(st.atk)}</b></div>
+       <div class="stat-box"><span>生命</span><b>${fmt(st.hp)}</b></div>
+       <div class="stat-box"><span>防御</span><b>${fmt(st.def)}</b></div>
+       <div class="stat-box"><span>速度</span><b>${fmt(st.spd)}</b></div>
+       <div class="stat-box"><span>战力</span><b style="color:#ff9a6a">${fmt(pw)}</b></div>
+       <div class="stat-box"><span>等级</span><b>${own.lv}/100</b></div>
+     </div>
+     ${skillBoxHtml(h,own.star)}
+     <div class="sec-title">培养 <span style="font-size:11px;color:var(--faint);font-family:'Noto Sans SC',sans-serif">升级消耗：经验 ${fmt(ne)} / 金币 ${fmt(gc)}</span></div>
+     <div style="display:flex;gap:8px;flex-wrap:wrap">
+       <button class="btn btn-gold btn-sm" data-lvl="1">升级</button>
+       <button class="btn btn-gold btn-sm" data-lvl="10">升10级</button>
+       <button class="btn btn-ghost btn-sm" data-lvl="max">一键升级</button>
+       <button class="btn btn-red btn-sm" data-act2="star">升星</button>
+       <button class="btn btn-ghost btn-sm" data-act2="reset">一键重置</button>
+     </div>
+     <div style="margin-top:6px;font-size:11.5px;color:var(--faint)">升星消耗：同名武将×2、金币 ${fmt(500*Math.pow(own.star-4,2))}（共需同名武将3张，升星后本体保留）</div>
+     <div style="margin-top:4px;font-size:11px;color:#c98f4a">一键重置：武将等级与装备强化恢复初始，升星保留，升级材料 100% 返还。</div>
+     <div class="sec-title">装备</div>
+     <div class="eq-grid">${eqHtml}</div>
+     <div style="margin-top:10px;font-size:11.5px;color:var(--faint)">点击装备槽查看可替换装备；装备强化消耗金币。</div>
+     <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+       <button class="btn btn-gold btn-sm" data-act3="craft">装备合成</button>
+       <button class="btn btn-ghost btn-sm" data-act3="autoeq">一键穿装</button>
+       <button class="btn btn-ghost btn-sm" data-act3="uneqall">一键脱装</button>
+       <span style="font-size:11px;color:var(--faint)">5 件同品质未穿戴装备 → 更高品质</span>
+     </div>
+   </div>`);
+  $$("#modal-root [data-lvl]").forEach(b=>b.onclick=()=>{ const n=b.dataset.lvl==="max"?99:+b.dataset.lvl; const d=levelUp(id,n); if(d>0){ toast("等级提升 "+d,"ok"); sfx("click"); openHeroModal(id); } else toast("经验或金币不足","err"); });
+  $$("#modal-root [data-act2='star']").forEach(b=>b.onclick=()=>{ if(starUp(id)){ toast("升星成功！","ok"); sfx("win"); openHeroModal(id); } });
+  $$("#modal-root [data-act2='reset']").forEach(b=>b.onclick=()=>{ const r=resetHero(id); if(r.expBack+r.goldBack>0){ toast("重置成功！返还经验 "+fmt(r.expBack)+" · 金币 "+fmt(r.goldBack),"ok"); sfx("click"); openHeroModal(id); } else toast("武将已处于初始状态","err"); });
+  $$("#modal-root [data-eqslot]").forEach(el=>el.onclick=()=>openEquipModal(id,el.dataset.eqslot));
+  $$("#modal-root [data-act3='craft']").forEach(b=>b.onclick=()=>openCraftModal());
+  $$("#modal-root [data-act3='autoeq']").forEach(b=>b.onclick=()=>{ const n=autoEquip(id); toast(n?("已穿戴最高级装备 "+n+" 件"):"背包暂无更高级装备","ok"); sfx("click"); openHeroModal(id); });
+  $$("#modal-root [data-act3='uneqall']").forEach(b=>b.onclick=()=>{ const n=unequipAll(id); toast(n?("已卸下全部装备 "+n+" 件"):"没有装备可卸","ok"); sfx("click"); openHeroModal(id); });
+}
+function eqStatsText(it,lv){ if(typeof it==="string") it=S.equipInv[it]; if(!it)return ""; const st=eqStatAt(it.slot,it.r,lv||0); return Object.keys(st).map(k=>({atkPct:"攻击",defPct:"防御",hpFlat:"生命",defFlat:"防御",spdFlat:"速度",hpPct:"生命",atkFlat:"攻击"}[k]||k)+"+"+st[k]).join(" "); }
+function openArtModal(id){
+  const p=PORTRAIT[id];
+  if(p===undefined){ toast("该武将暂无立绘","err"); return; }
+  const h=H[id];
+  modal(`
+   <button class="m-close" onclick="closeModal()">×</button>
+   <div style="text-align:center;padding:4px 0">
+     <div style="font-size:15px;color:var(--gold2);margin:0 0 12px"><b>${esc(h.name)}</b> · 高清立绘</div>
+     <div class="portrait art-big s${Math.floor(p/6)} p${p%6}"></div>
+     <div style="margin-top:12px;font-size:11px;color:var(--faint)">点击空白处或 × 关闭</div>
+   </div>`);
+}
+function openEquipModal(heroId,slot){
+  const items=Object.values(S.equipInv).filter(it=>it.slot===slot && !(it.onHero && it.onHero!==heroId)).sort((a,b)=>b.r-a.r);
+  const h=heroData(heroId);
+  const equippedId=h.eq[slot];
+  const slotLv=(h.eqLv&&h.eqLv[slot])||0;
+  const maxLv=eqMaxLv();
+  const it0=equippedId?S.equipInv[equippedId]:null;
+  const cost=slotLv>=maxLv?0:Math.round(Math.pow(slotLv+1,2)*25*EQ_RAR[Math.min(5,Math.max(0,(it0&&it0.r)||0))].m);
+  modal(`
+   <button class="m-close" onclick="closeModal()">×</button>
+   <div class="m-head"><div><div class="m-name" style="font-size:17px">${EQ_SLOTS.find(s=>s.id===slot).name} · ${esc(H[heroId].name)}</div>
+   <div style="font-size:12px;color:var(--dim);margin-top:4px">${items.length?"点击装备以替换":"暂无该类装备，扫荡关卡可获得"}</div>
+   <div style="font-size:11.5px;color:var(--gold2);margin-top:3px">强化的是本英雄的装备部位（当前 +${slotLv}），更换装备后强化等级保留</div></div></div>
+   <div class="m-body">
+     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px">
+       ${items.map(it=>`<div class="eq-item-card ${it.id===equippedId?"":""}" data-item="${it.id}" style="--eqc:${EQ_RAR[it.r].c}">
+         <div class="ei-icobox">${eqWeaponImg(it.slot,it.r)?`<img src="${eqWeaponImg(it.slot,it.r)}" class="eq-ico-lg" style="width:54px;height:54px;object-fit:contain">`:`<span class="eq-ico eq-ico-lg ico-${it.slot}"></span>`}</div>
+         <div class="ei-n">${esc(eqName(it.slot,it.r))}</div>
+         <div class="ei-st">${eqStatsText(it,slotLv)}</div>
+         <div class="ei-lv">部位强化 +${slotLv} ${it.id===equippedId?'<span class="ok">已装备</span>':""}</div>
+       </div>`).join("")||`<div class="empty-tip" style="grid-column:1/-1">暂无装备</div>`}
+     </div>
+     <div style="display:flex;gap:8px;margin-top:12px">
+       <button class="btn btn-gold btn-sm" data-eqop="up" ${slotLv>=maxLv?'disabled':''}>${slotLv>=maxLv?"部位已满级":"强化部位 +"+slotLv+" → +"+(slotLv+1)+"（金币 "+fmt(cost)+"）"}</button>
+       ${equippedId?`<button class="btn btn-dark btn-sm" data-eqop="off">卸下</button>`:""}
+     </div>
+     <div style="margin-top:12px"><button class="btn btn-ghost btn-sm" onclick="openHeroModal('${heroId}')">返回武将</button></div>
+   </div>`);
+  $$("#modal-root [data-item]").forEach(el=>el.onclick=()=>{ if(el.dataset.item===equippedId) return; if(equipItem(heroId,slot,el.dataset.item)){ saveGame(); toast("装备成功","ok"); sfx("click"); openEquipModal(heroId,slot); } });
+  $$("#modal-root [data-eqop]").forEach(el=>el.onclick=()=>{
+    if(el.dataset.eqop==="up"){ if(upgradeEq(heroId,slot)){ toast("强化成功","ok"); sfx("skill"); openEquipModal(heroId,slot); } }
+    else{ unequip(heroId,slot); saveGame(); toast("已卸下","ok"); openEquipModal(heroId,slot); }
+  });
+}
+/* ============ 装备合成 ============ */
+function craftCount(){ const cnt=[0,0,0,0,0,0]; for(const k in S.equipInv){ const it=S.equipInv[k]; if(it&&!it.onHero) cnt[it.r]++; } return cnt; }
+function craftEquips(r){
+  const ids=Object.keys(S.equipInv).filter(k=>{ const it=S.equipInv[k]; return it&&!it.onHero&&it.r===r; }).slice(0,5);
+  if(ids.length<5){ toast("该品质未穿戴装备不足 5 件","err"); return null; }
+  ids.forEach(k=>delete S.equipInv[k]);
+  const slot=EQ_SLOTS[Math.floor(Math.random()*5)].id;
+  const id=uid(); S.equipInv[id]={id,slot,r:r+1,lv:0}; return id;
+}
+function openCraftModal(){
+  const cnt=craftCount();
+  modal(`
+   <button class="m-close" onclick="closeModal()">×</button>
+   <div class="m-head"><div><div class="m-name" style="font-size:17px">装备合成</div>
+   <div style="font-size:12px;color:var(--dim);margin-top:4px">任意 5 件同品质【未穿戴】装备，合成 1 件更高品质</div></div></div>
+   <div class="m-body">
+     <div style="font-size:11.5px;color:var(--faint);margin-bottom:10px">已穿在武将身上的装备不会参与合成；合成结果自动放入背包。</div>
+     ${EQ_RAR.map((rr,i)=>{
+       const n=cnt[i], times=Math.floor(n/5);
+       const can=i<5 && times>0;
+       return `<div class="craft-row">
+         <span class="craft-dot" style="background:${rr.c}"></span>
+         <span class="craft-name" style="color:${rr.c}">${rr.n}</span>
+         <span class="craft-n">未穿戴 ${n} 件${i>=5?" · 已达最高品质":""}</span>
+         ${can?`<button class="btn btn-gold btn-sm craft-btn" data-craft="${i}">合成 ×${times}</button>`:`<span class="craft-btn" style="font-size:11px;color:var(--faint)">${i>=5?"无法合成":"不足 5 件"}</span>`}
+       </div>`; }).join("")}
+     <div style="margin-top:4px;font-size:11.5px;color:var(--faint)">品质：凡品 → 良品 → 精良 → 珍品 → 极品 → 传说</div>
+     <div style="margin-top:12px"><button class="btn btn-ghost btn-sm" onclick="closeModal()">关闭</button></div>
+   </div>`);
+  $$("#modal-root [data-craft]").forEach(b=>b.onclick=()=>{
+    const r=+b.dataset.craft, times=Math.floor(craftCount()[r]/5);
+    if(times<1){ toast("该品质未穿戴装备不足 5 件","err"); return; }
+    const got=[];
+    for(let i=0;i<times;i++){ const id=craftEquips(r); if(id) got.push(eqName(S.equipInv[id].slot,S.equipInv[id].r)); }
+    saveGame(); sfx("skill");
+    toast("合成 "+got.length+" 件："+got.slice(0,3).join("、")+(got.length>3?" 等 "+got.length+" 件":"")+(got.length===1?"":""),"ok");
+    openCraftModal();
+  });
+}
+
+/* ============ 新手引导 / 离线收益 ============ */
+function openIntro(){
+  modal(`
+   <button class="m-close" style="display:none">×</button>
+   <div class="m-head"><div class="h-med" style="width:72px;height:72px;font-size:34px;background:linear-gradient(160deg,#c9a24b,#5b3d14);border-color:#e8c87a">汉</div>
+     <div><div class="m-name">群雄逐鹿</div>
+     <div style="font-size:12px;color:var(--dim);margin-top:4px">挂机闯关 · 四阵营 · 羁绊 · 装备</div></div></div>
+   <div class="m-body">
+     <div class="guide-list">
+       <div class="guide-step"><span class="gs-n">1</span><p>开局即送 <b style="color:var(--gold2)">刘备、赵云</b> 等 6 名武将，已自动上阵。</p></div>
+       <div class="guide-step"><span class="gs-n">2</span><p>去<b>推图</b>自动战斗推进关卡，每关获得金币、经验与装备。</p></div>
+       <div class="guide-step"><span class="gs-n">3</span><p>挂机收益持续累积，离线 12 小时内登录自动领取。</p></div>
+       <div class="guide-step"><span class="gs-n">4</span><p>用<b>招募令</b>招募更多武将，凑齐羁绊（如桃园结义）大幅提升战力。</p></div>
+       <div class="guide-step"><span class="gs-n">5</span><p>武将升级升星、装备强化，战力达标即可通关首领关。</p></div>
+     </div>
+     <div style="text-align:center;margin-top:16px"><button class="btn btn-gold" onclick="introDone()">开始征战</button></div>
+   </div>`);
+  $("#modal-root .m-veil").onclick=null;
+}
+function introDone(){ S.seenIntro=true; saveGame(); closeModal(); sfx("win"); }
+function showOffline(off){
+  modal(`
+   <button class="m-close" onclick="closeModal()">×</button>
+   <div class="m-head"><div><div class="m-name">欢迎归来</div><div style="font-size:12px;color:var(--dim);margin-top:4px">离线 ${fmtT(off.mins*60000)} 的挂机收益已发放</div></div></div>
+   <div class="m-body"><div class="br-rewards" style="justify-content:flex-start">
+     <span class="br-reward">金币 <b>+${fmt(off.gold)}</b></span>
+     <span class="br-reward">经验 <b>+${fmt(off.exp)}</b></span>
+     ${off.t?`<span class="br-reward">招募令 <b>+${off.t}</b></span>`:""}
+     ${off.eq?`<span class="br-reward">装备 <b>×${off.eq}</b></span>`:""}
+   </div>
+   <div style="text-align:center;margin-top:14px"><button class="btn btn-gold" onclick="closeModal();renderTopbar();if(!S.seenIntro)openIntro()">收下</button></div></div>`);
+  saveGame(); renderTopbar();
+}
+
+/* ============ 动作绑定 ============ */
+function bindActions(){
+  $$("#view [data-ffac]").forEach(b=>b.onclick=()=>{ HERO_FILTER.fac=b.dataset.ffac; renderCurrent(); });
+  $$("#view [data-frar]").forEach(b=>b.onclick=()=>{ HERO_FILTER.rar=b.dataset.frar; renderCurrent(); });
+  $$("#view [data-fslot]").forEach(el=>el.onclick=()=>openSlotModal(+el.dataset.fslot));
+  $$("#view [data-chap]").forEach(b=>b.onclick=()=>{ VIEW_CHAP=+b.dataset.chap; renderCurrent(); });
+  $$("#view [data-node]").forEach(el=>el.onclick=()=>{
+    const idx=+el.dataset.node;
+    if(idx===stageIdx()) startBattle(true);
+    else if(idx<=S.clearedMax){ const c=Math.floor((idx-1)/10)+1, s=(idx-1)%10+1; S.chapter=c; S.stage=s; saveGame(); renderCurrent(); openSweepModal(c,s); }
+    else toast("请先通关前置关卡","err");
+  });
+  $$("#view [data-act]").forEach(b=>{
+    const a=b.dataset.act;
+    b.onclick=()=>{
+      if(a==="battle") location.hash="#/battle";
+      else if(a==="recruit") location.hash="#/recruit";
+      else if(a==="formation") location.hash="#/formation";
+      else if(a==="codex") location.hash="#/codex";
+      else if(a==="collectIdle") collectIdle();
+      else if(a==="startBattle") startBattle(true);
+      else if(a==="autoPush") autoPush();
+      else if(a==="sweep1") sweep(1);
+      else if(a==="sweep10") sweep(10);
+      else if(a==="speedToggle"){ BATTLE.speed=BATTLE.speed===1?2:BATTLE.speed===2?4:1; $$("[data-act='speedToggle']").forEach(x=>x.textContent="速度 ×"+BATTLE.speed); sfx("click"); }
+      else if(a==="abortBattle"){ clearTimeout(BATTLE.timer); BATTLE.phase="done"; finishBattle(BATTLE.win,true); }
+      else if(a==="backMap"){ clearTimeout(BATTLE.timer); BATTLE.phase="idle"; renderBattleBox(); }
+      else if(a==="pull1") doPull(1,false);
+      else if(a==="pull10") doPull(10,false);
+      else if(a==="freePull") doPull(1,true);
+      else if(a==="exportSave") exportSave();
+      else if(a==="importSave") importSave();
+      else if(a==="resetSave") resetSave();
+      else if(a==="runCmd") runTestCmd();
+      else toast("功能开发中","err");
+    };
+  });
+  $$("#view [data-sound]").forEach(el=>el.onclick=()=>{ S.sound=!S.sound; saveGame(); renderCurrent(); if(S.sound)sfx("click"); });
+  $$("#view [data-music]").forEach(el=>el.onclick=()=>{ S.music=!S.music; saveGame(); renderCurrent(); applyMusic(); });
+}
+{ const old=bindView; window.bindView=function(){ old(); bindActions(); }; }
+
+/* ============ 启动 ============ */
+function boot(){
+  if(!loadGame()){ S=defaultState(); }
+  cur=location.hash||"#/home";
+  window.addEventListener("hashchange",()=>{ cur=location.hash||"#/home"; renderAll(); sfx("click"); });
+  renderAll();
+  recoverSweeps(); saveGame();
+  setInterval(()=>{ idleTick(); const p=S.pending; if(Math.floor(p.gold)||Math.floor(p.exp)||Math.floor(p.tickets)||Math.floor(p.eqs)){ renderTopbar(); if(cur==="#/home") renderCurrent(); } },5000);
+  setInterval(saveGame,30000);
+  window.addEventListener("beforeunload",saveGame);
+  document.addEventListener("pointerdown",initAudio,{once:true});
+  document.addEventListener("pointerdown",tryPlayBGM,{once:true});
+  $("#topbar").addEventListener("click",e=>{
+    const b=e.target.closest("[data-act]"); if(!b) return;
+    const act=b.dataset.act;
+    if(act==="music"){ S.music=!S.music; saveGame(); applyMusic(); renderTopbar(); }
+    else if(act==="settings"){ sfx("click"); location.hash="#/settings"; }
+  });
+  const off=calcOffline();
+  if(off){ setTimeout(()=>showOffline(off),600); }
+  else if(!S.seenIntro){ setTimeout(()=>{ if(!$("#modal-root.open")) openIntro(); },1200); }
+}
+boot();
+</script>
+</body>
+</html>
